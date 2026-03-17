@@ -99,7 +99,7 @@ lib/
 ### Installation
 ```bash
 # Clone the repository
-git clone https://github.com/YOUR_USERNAME/ezze_music.git
+git clone https://github.com/ImranHasan134/ezze_music.git
 
 # Navigate to project directory
 cd ezze_music

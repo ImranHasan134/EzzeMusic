@@ -1,76 +1,347 @@
+import 'dart:async';
+
 import 'package:just_audio/just_audio.dart';
 import 'package:just_audio_background/just_audio_background.dart';
 
 import '../models/song.dart';
 
+enum PlaybackRepeatMode { off, one, all }
+
 class PlayerController {
   final AudioPlayer _player = AudioPlayer();
-  List<Song> _queue = const [];
+  final List<Song> _queue = <Song>[];
+  final List<AudioSource> _sources = <AudioSource>[];
 
-  AudioPlayer get audioPlayer => _player;
-  List<Song> get queue => _queue;
+  final StreamController<List<Song>> _queueController =
+  StreamController<List<Song>>.broadcast();
+  final StreamController<Song?> _currentSongController =
+  StreamController<Song?>.broadcast();
+  final StreamController<PlaybackRepeatMode> _repeatModeController =
+  StreamController<PlaybackRepeatMode>.broadcast();
+  final StreamController<bool> _shuffleController =
+  StreamController<bool>.broadcast();
 
-  Stream<PlayerState> get playerStateStream => _player.playerStateStream;
+  StreamSubscription<SequenceState?>? _sequenceSub;
+  StreamSubscription<LoopMode>? _loopModeSub;
+  StreamSubscription<bool>? _shuffleSub;
+
+  List<Song> get queue => List.unmodifiable(_queue);
+  int? get currentIndex => _player.currentIndex;
+  bool get playing => _player.playing;
+
+  Stream<List<Song>> get queueStream => _queueController.stream;
+  Stream<Song?> get currentSongStream => _currentSongController.stream;
+
   Stream<Duration> get positionStream => _player.positionStream;
+  Stream<Duration> get bufferedPositionStream =>
+      _player.bufferedPositionStream;
   Stream<Duration?> get durationStream => _player.durationStream;
+  Stream<PlayerState> get playerStateStream => _player.playerStateStream;
+  Stream<ProcessingState> get processingStateStream =>
+      _player.processingStateStream;
   Stream<int?> get currentIndexStream => _player.currentIndexStream;
-  Stream<bool> get shuffleModeEnabledStream => _player.shuffleModeEnabledStream;
-  Stream<LoopMode> get loopModeStream => _player.loopModeStream;
-  Stream<double> get speedStream => _player.speedStream;
+  Stream<PlaybackRepeatMode> get repeatModeStream =>
+      _repeatModeController.stream;
+  Stream<bool> get shuffleEnabledStream => _shuffleController.stream;
+
+  PlaybackRepeatMode _repeatMode = PlaybackRepeatMode.off;
+  PlaybackRepeatMode get repeatMode => _repeatMode;
+
+  bool _shuffleEnabled = false;
+  bool get shuffleEnabled => _shuffleEnabled;
+
+  Song? get currentSong {
+    final idx = currentIndex;
+    if (idx == null || idx < 0 || idx >= _queue.length) return null;
+    return _queue[idx];
+  }
 
   Future<void> init() async {
-    // No-op: we set sources when user selects songs.
+    _queueController.add(queue);
+    _currentSongController.add(null);
+    _repeatModeController.add(_repeatMode);
+    _shuffleController.add(_shuffleEnabled);
+
+    // ── Single reliable source of truth for current song ─────────
+    // sequenceStateStream fires AFTER just_audio fully settles on
+    // the new track, so the index is always the correct new value.
+    _sequenceSub?.cancel();
+    _sequenceSub = _player.sequenceStateStream.listen((state) {
+      if (state == null || _queue.isEmpty) {
+        _currentSongController.add(null);
+        return;
+      }
+      final index = state.currentIndex;
+      if (index == null || index < 0 || index >= _queue.length) {
+        _currentSongController.add(null);
+        return;
+      }
+      _currentSongController.add(_queue[index]);
+    });
+
+    _loopModeSub?.cancel();
+    _loopModeSub = _player.loopModeStream.listen((mode) {
+      final next = switch (mode) {
+        LoopMode.off => PlaybackRepeatMode.off,
+        LoopMode.one => PlaybackRepeatMode.one,
+        LoopMode.all => PlaybackRepeatMode.all,
+      };
+      _repeatMode = next;
+      _repeatModeController.add(next);
+    });
+
+    _shuffleSub?.cancel();
+    _shuffleSub = _player.shuffleModeEnabledStream.listen((enabled) {
+      _shuffleEnabled = enabled;
+      _shuffleController.add(enabled);
+    });
   }
 
-  Future<void> dispose() async {
-    await _player.dispose();
-  }
+  Future<void> setQueue(
+      List<Song> songs, {
+        int startIndex = 0,
+        bool playWhenReady = false,
+      }) async {
+    await stop();
 
-  Future<void> setQueue(List<Song> songs, {int startIndex = 0}) async {
-    _queue = List.unmodifiable(songs);
-    final sources = songs
-        .map(
-          (s) => AudioSource.uri(
-            Uri.parse(s.uri),
-            tag: MediaItem(
-              id: s.id.toString(),
-              title: s.title,
-              artist: s.artist,
-              duration: s.duration,
-            ),
-          ),
-        )
-        .toList();
+    _queue
+      ..clear()
+      ..addAll(songs);
+    _sources
+      ..clear()
+      ..addAll(songs.map(_toAudioSource));
+    _queueController.add(queue);
 
-    await _player.setAudioSources(sources, initialIndex: startIndex);
+    final safeStart =
+    (startIndex < 0 || startIndex >= songs.length) ? 0 : startIndex;
+
+    await _player.setAudioSources(
+      _sources,
+      initialIndex: safeStart,
+      initialPosition: Duration.zero,
+    );
+
+    if (_shuffleEnabled) {
+      await _player.shuffle();
+    }
+
+    // Emit immediately so UI shows correct song without waiting
+    // for sequenceStateStream to fire
+    _currentSongController.add(
+      songs.isEmpty ? null : songs[safeStart],
+    );
+
+    if (playWhenReady && songs.isNotEmpty) {
+      await play();
+    }
   }
 
   Future<void> play() => _player.play();
   Future<void> pause() => _player.pause();
-  Future<void> seek(Duration position) => _player.seek(position);
-  Future<void> seekToIndex(int index) => _player.seek(Duration.zero, index: index);
-  Future<void> next() => _player.seekToNext();
-  Future<void> previous() => _player.seekToPrevious();
+  Future<void> toggle() => playing ? pause() : play();
 
-  Future<void> toggleShuffle() async {
-    final next = !_player.shuffleModeEnabled;
-    if (next) {
+  Future<void> stop() async {
+    await _player.stop();
+  }
+
+  Future<void> seek(Duration position) async {
+    await _player.seek(position);
+  }
+
+  Future<void> skipTo(int index) async {
+    if (_queue.isEmpty) return;
+    if (index < 0 || index >= _queue.length) return;
+    await _player.seek(Duration.zero, index: index);
+  }
+
+  Future<void> next() async {
+    if (_queue.isEmpty) return;
+    if (_player.hasNext) {
+      await _player.seekToNext();
+      return;
+    }
+    if (_repeatMode == PlaybackRepeatMode.all) {
+      await _player.seek(Duration.zero, index: 0);
+    }
+  }
+
+  Future<void> previous() async {
+    if (_queue.isEmpty) return;
+    final pos = _player.position;
+    if (pos.inSeconds > 3) {
+      await _player.seek(Duration.zero);
+      return;
+    }
+    if (_player.hasPrevious) {
+      await _player.seekToPrevious();
+      return;
+    }
+    if (_repeatMode == PlaybackRepeatMode.all && _queue.isNotEmpty) {
+      await _player.seek(Duration.zero, index: _queue.length - 1);
+    }
+  }
+
+  Future<void> setShuffleEnabled(bool enabled) async {
+    _shuffleEnabled = enabled;
+    await _player.setShuffleModeEnabled(enabled);
+    if (enabled) {
       await _player.shuffle();
     }
-    await _player.setShuffleModeEnabled(next);
+    _shuffleController.add(enabled);
+  }
+
+  Future<void> setRepeatMode(PlaybackRepeatMode mode) async {
+    _repeatMode = mode;
+    await _player.setLoopMode(
+      switch (mode) {
+        PlaybackRepeatMode.off => LoopMode.off,
+        PlaybackRepeatMode.one => LoopMode.one,
+        PlaybackRepeatMode.all => LoopMode.all,
+      },
+    );
+    _repeatModeController.add(mode);
   }
 
   Future<void> cycleRepeatMode() async {
-    // off -> all -> one -> off
-    final current = _player.loopMode;
-    final next = switch (current) {
-      LoopMode.off => LoopMode.all,
-      LoopMode.all => LoopMode.one,
-      LoopMode.one => LoopMode.off,
+    final next = switch (_repeatMode) {
+      PlaybackRepeatMode.off => PlaybackRepeatMode.all,
+      PlaybackRepeatMode.all => PlaybackRepeatMode.one,
+      PlaybackRepeatMode.one => PlaybackRepeatMode.off,
     };
-    await _player.setLoopMode(next);
+    await setRepeatMode(next);
   }
 
-  Future<void> setSpeed(double speed) => _player.setSpeed(speed);
-}
+  Future<void> addToQueueNext(Song song) async {
+    if (_queue.isEmpty) {
+      await setQueue([song], startIndex: 0);
+      return;
+    }
+    final idx = currentIndex ?? -1;
+    final insertAt =
+    (idx < 0) ? _queue.length : (idx + 1).clamp(0, _queue.length);
+    _queue.insert(insertAt, song);
+    _sources.insert(insertAt, _toAudioSource(song));
+    await _reloadSources(keepPosition: true);
+    _queueController.add(queue);
+  }
 
+  Future<void> addToQueueEnd(Song song) async {
+    if (_queue.isEmpty) {
+      await setQueue([song], startIndex: 0);
+      return;
+    }
+    _queue.add(song);
+    _sources.add(_toAudioSource(song));
+    await _reloadSources(keepPosition: true);
+    _queueController.add(queue);
+  }
+
+  Future<void> removeFromQueue(int index) async {
+    if (_queue.isEmpty) return;
+    if (index < 0 || index >= _queue.length) return;
+
+    final current = currentIndex ?? 0;
+    final currentPos = _player.position;
+    _queue.removeAt(index);
+    _sources.removeAt(index);
+    await _reloadSources(
+      keepPosition: true,
+      preferredIndex: current > index ? current - 1 : current,
+      preferredPosition: currentPos,
+    );
+    _queueController.add(queue);
+    if (_queue.isEmpty) await stop();
+  }
+
+  Future<void> moveQueueItem(int from, int to) async {
+    if (_queue.isEmpty) return;
+    if (from < 0 || from >= _queue.length) return;
+    if (to < 0 || to >= _queue.length) return;
+    if (from == to) return;
+
+    final current = currentIndex ?? 0;
+    final currentPos = _player.position;
+
+    final song = _queue.removeAt(from);
+    _queue.insert(to, song);
+
+    final src = _sources.removeAt(from);
+    _sources.insert(to, src);
+
+    final nextIndex =
+    _remapIndexAfterMove(current, from: from, to: to);
+    await _reloadSources(
+      keepPosition: true,
+      preferredIndex: nextIndex,
+      preferredPosition: currentPos,
+    );
+    _queueController.add(queue);
+  }
+
+  int _remapIndexAfterMove(
+      int current, {required int from, required int to}) {
+    if (current == from) return to;
+    if (from < to) {
+      if (current > from && current <= to) return current - 1;
+    } else {
+      if (current >= to && current < from) return current + 1;
+    }
+    return current;
+  }
+
+  Future<void> _reloadSources({
+    required bool keepPosition,
+    int? preferredIndex,
+    Duration? preferredPosition,
+  }) async {
+    if (_queue.isEmpty) {
+      await stop();
+      return;
+    }
+
+    final idx = preferredIndex ?? (currentIndex ?? 0);
+    final safeIdx = idx.clamp(0, _queue.length - 1);
+    final pos = keepPosition
+        ? (preferredPosition ?? _player.position)
+        : Duration.zero;
+
+    await _player.setAudioSources(
+      _sources,
+      initialIndex: safeIdx,
+      initialPosition: pos,
+    );
+
+    if (_shuffleEnabled) {
+      await _player.shuffle();
+    }
+  }
+
+  AudioSource _toAudioSource(Song song) {
+    final mediaItem = MediaItem(
+      id: song.uri,
+      title: song.title,
+      artist: song.artist,
+      album: song.album,
+      duration: song.duration,
+      artUri: song.artworkUri,
+    );
+    return AudioSource.uri(Uri.parse(song.uri), tag: mediaItem);
+  }
+
+  void _emitCurrentSong() {
+    _currentSongController.add(currentSong);
+  }
+
+  Future<void> dispose() async {
+    await _sequenceSub?.cancel();
+    await _loopModeSub?.cancel();
+    await _shuffleSub?.cancel();
+
+    await _queueController.close();
+    await _currentSongController.close();
+    await _repeatModeController.close();
+    await _shuffleController.close();
+
+    await _player.dispose();
+  }
+}

@@ -23,7 +23,7 @@ class _NowPlayingScreenState extends State<NowPlayingScreen>
   static const _bgCard        = Color(0xFF16161F);
   static const _bgGlass       = Color(0xFF1E1E2A);
   static const _accent        = Color(0xFFFF6B35);
-  static const _accentSoft    = Color(0xFFFF6B35);
+  static const _accentSoft    = Color(0xFF1103FA);
   static const _textPrimary   = Color(0xFFF0F0F5);
   static const _textSecondary = Color(0xFF8A8A9A);
   static const _textMuted     = Color(0xFF4A4A5A);

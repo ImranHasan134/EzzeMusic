@@ -8,7 +8,7 @@ A beautifully designed, feature-rich local music player built with Flutter. Ezze
 
 ### 🎵 Playback
 - Play local audio files from device storage
-- Background playback with lock screen & notification controls
+- Background playback with lock screen
 - Play/Pause, Next, Previous controls
 - Seek bar with real-time position tracking
 - Shuffle mode
@@ -18,7 +18,7 @@ A beautifully designed, feature-rich local music player built with Flutter. Ezze
 
 ### 📋 Library
 - Scan device for all audio files
-- Import songs from Files app (iOS)
+- Import songs from Files app
 - Songs list with A–Z / Z–A sorting
 
 ### 🎶 Playlists
@@ -65,8 +65,6 @@ lib/
     ├── data/
     │   └── songs_repository.dart
     ├── models/
-    │   ├── album.dart
-    │   ├── artist.dart
     │   ├── playlist.dart
     │   └── song.dart
     ├── state/
@@ -98,6 +96,7 @@ lib/
 
 ### Installation
 ```bash
+
 # Clone the repository
 git clone https://github.com/ImranHasan134/ezze_music.git
 

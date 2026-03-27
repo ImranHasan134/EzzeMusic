@@ -9,16 +9,16 @@ class MiniPlayerBar extends StatelessWidget {
 
   const MiniPlayerBar({super.key, this.onTap});
 
-  // ── Design tokens ────────────────────────────────────────────────
+  // ── Static Design tokens (Non-accent) ──────────────────────────
   static const _bgGlass       = Color(0xFF18181B);
-  static const _accent        = Color(0xFF6366F1);
   static const _textPrimary   = Color(0xFFFAFAFA);
   static const _textSecondary = Color(0xFFA1A1AA);
-  static const _textMuted     = Color(0xFF71717A);
   static const _divider       = Color(0xFF27272A);
 
   @override
   Widget build(BuildContext context) {
+    // 1. Link to Dynamic Accent
+    final accent = Theme.of(context).colorScheme.primary;
     final app = context.watch<AppState>();
 
     return StreamBuilder(
@@ -31,9 +31,7 @@ class MiniPlayerBar extends StatelessWidget {
         return Container(
           decoration: const BoxDecoration(
             color: _bgGlass,
-            border: Border(
-              top: BorderSide(color: _divider, width: 1),
-            ),
+            border: Border(top: BorderSide(color: _divider, width: 1)),
           ),
           child: SafeArea(
             top: false,
@@ -41,84 +39,62 @@ class MiniPlayerBar extends StatelessWidget {
               onTap: onTap,
               behavior: HitTestBehavior.opaque,
               child: Padding(
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 14, vertical: 10),
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Row(
                       children: [
-                        // ── Album icon ─────────────────────────
+                        // ── Album icon (Dynamic Glow) ──
                         Container(
                           width: 42,
                           height: 42,
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
-                            color: _accent.withOpacity(0.12),
-                            border: Border.all(
-                              color: _accent.withOpacity(0.25),
-                            ),
+                            color: accent.withOpacity(0.12),
+                            border: Border.all(color: accent.withOpacity(0.25)),
                           ),
-                          child: const Icon(
+                          child: Icon(
                             Icons.music_note_rounded,
-                            color: _accent,
+                            color: accent, // DYNAMIC ACCENT
                             size: 18,
                           ),
                         ),
 
                         const SizedBox(width: 12),
 
-                        // ── Song info ──────────────────────────
+                        // ── Song info ──
                         Expanded(
                           child: Column(
                             mainAxisSize: MainAxisSize.min,
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                song.title.isEmpty
-                                    ? 'Unknown Title'
-                                    : song.title,
+                                song.title.isEmpty ? 'Unknown Title' : song.title,
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(
-                                  color: _textPrimary,
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w600,
-                                  letterSpacing: 0.1,
-                                ),
+                                style: const TextStyle(color: _textPrimary, fontSize: 13, fontWeight: FontWeight.w600),
                               ),
                               const SizedBox(height: 2),
                               Text(
-                                song.artist.isEmpty
-                                    ? 'Unknown Artist'
-                                    : song.artist,
+                                song.artist.isEmpty ? 'Unknown Artist' : song.artist,
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(
-                                  color: _textSecondary,
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w400,
-                                ),
+                                style: const TextStyle(color: _textSecondary, fontSize: 11),
                               ),
                             ],
                           ),
                         ),
 
-                        // ── Controls ───────────────────────────
+                        // ── Controls ──
                         StreamBuilder(
                           stream: app.player.playerStateStream,
-                          initialData: app.player.playing
-                              ? PlayerState(true, ProcessingState.ready)
-                              : PlayerState(false, ProcessingState.idle),
                           builder: (context, snapState) {
-                            final playing =
-                                snapState.data?.playing ??
-                                    app.player.playing;
+                            final playing = snapState.data?.playing ?? app.player.playing;
                             return _ControlButton(
-                              icon: playing
-                                  ? Icons.pause_rounded
-                                  : Icons.play_arrow_rounded,
+                              icon: playing ? Icons.pause_rounded : Icons.play_arrow_rounded,
                               isAccent: true,
+                              accentColor: accent, // PASS DYNAMIC ACCENT
                               onTap: () => app.player.toggle(),
                             );
                           },
@@ -129,6 +105,7 @@ class MiniPlayerBar extends StatelessWidget {
                         _ControlButton(
                           icon: Icons.skip_next_rounded,
                           isAccent: false,
+                          accentColor: accent, // PASS DYNAMIC ACCENT
                           onTap: () => app.player.next(),
                         ),
                       ],
@@ -136,8 +113,8 @@ class MiniPlayerBar extends StatelessWidget {
 
                     const SizedBox(height: 10),
 
-                    // ── Progress bar ───────────────────────────
-                    _MiniProgressBar(app: app),
+                    // ── Progress bar (Dynamic Line) ──
+                    _MiniProgressBar(app: app, accentColor: accent),
                   ],
                 ),
               ),
@@ -149,16 +126,18 @@ class MiniPlayerBar extends StatelessWidget {
   }
 }
 
-// ── Control Button ────────────────────────────────────────────────────────────
+// ── Control Button (Dynamic) ──────────────────────────────────────────────────
 
 class _ControlButton extends StatefulWidget {
   final IconData icon;
   final bool isAccent;
+  final Color accentColor;
   final VoidCallback onTap;
 
   const _ControlButton({
     required this.icon,
     required this.isAccent,
+    required this.accentColor,
     required this.onTap,
   });
 
@@ -169,18 +148,16 @@ class _ControlButton extends StatefulWidget {
 class _ControlButtonState extends State<_ControlButton> {
   bool _pressed = false;
 
-  static const _accent   = Color(0xFF6366F1);
   static const _textMuted = Color(0xFF71717A);
   static const _divider  = Color(0xFF27272A);
 
   @override
   Widget build(BuildContext context) {
+    final accent = widget.accentColor;
+
     return GestureDetector(
       onTapDown: (_) => setState(() => _pressed = true),
-      onTapUp: (_) {
-        setState(() => _pressed = false);
-        widget.onTap();
-      },
+      onTapUp: (_) { setState(() => _pressed = false); widget.onTap(); },
       onTapCancel: () => setState(() => _pressed = false),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 110),
@@ -189,19 +166,13 @@ class _ControlButtonState extends State<_ControlButton> {
         decoration: BoxDecoration(
           shape: BoxShape.circle,
           color: widget.isAccent
-              ? (_pressed
-              ? _accent.withOpacity(0.35)
-              : _accent.withOpacity(0.18))
-              : (_pressed
-              ? _divider
-              : Colors.transparent),
-          border: widget.isAccent
-              ? Border.all(color: _accent.withOpacity(0.35))
-              : null,
+              ? (_pressed ? accent.withOpacity(0.35) : accent.withOpacity(0.18))
+              : (_pressed ? _divider : Colors.transparent),
+          border: widget.isAccent ? Border.all(color: accent.withOpacity(0.35)) : null,
         ),
         child: Icon(
           widget.icon,
-          color: widget.isAccent ? _accent : _textMuted,
+          color: widget.isAccent ? accent : _textMuted, // DYNAMIC ACCENT
           size: widget.isAccent ? 20 : 18,
         ),
       ),
@@ -209,33 +180,30 @@ class _ControlButtonState extends State<_ControlButton> {
   }
 }
 
-// ── Mini Progress Bar ─────────────────────────────────────────────────────────
+// ── Mini Progress Bar (Dynamic) ───────────────────────────────────────────────
 
 class _MiniProgressBar extends StatelessWidget {
   final AppState app;
+  final Color accentColor;
 
-  const _MiniProgressBar({required this.app});
+  const _MiniProgressBar({required this.app, required this.accentColor});
 
-  static const _accent  = Color(0xFF6366F1);
   static const _divider = Color(0xFF27272A);
 
   @override
   Widget build(BuildContext context) {
     return StreamBuilder<Duration?>(
       stream: app.player.durationStream,
-      initialData: null,
       builder: (context, snapDur) {
         final duration = snapDur.data ?? Duration.zero;
-        final total = duration.inMilliseconds == 0
-            ? 1
-            : duration.inMilliseconds;
+        final total = duration.inMilliseconds == 0 ? 1 : duration.inMilliseconds;
 
         return StreamBuilder<Duration>(
           stream: app.player.positionStream,
           initialData: Duration.zero,
           builder: (context, snapPos) {
-            final pos     = snapPos.data ?? Duration.zero;
-            final ratio   = (pos.inMilliseconds / total).clamp(0.0, 1.0);
+            final pos   = snapPos.data ?? Duration.zero;
+            final ratio = (pos.inMilliseconds / total).clamp(0.0, 1.0);
 
             return ClipRRect(
               borderRadius: BorderRadius.circular(2),
@@ -244,8 +212,7 @@ class _MiniProgressBar extends StatelessWidget {
                 child: LinearProgressIndicator(
                   value: ratio,
                   backgroundColor: _divider,
-                  valueColor:
-                  const AlwaysStoppedAnimation<Color>(_accent),
+                  valueColor: AlwaysStoppedAnimation<Color>(accentColor), // DYNAMIC ACCENT
                 ),
               ),
             );

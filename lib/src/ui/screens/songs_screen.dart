@@ -6,7 +6,6 @@ import 'package:provider/provider.dart';
 
 import '../../models/song.dart';
 import '../../state/app_state.dart';
-import '../widgets/mini_song_tile.dart';
 
 enum SongSort { az, za }
 
@@ -22,46 +21,65 @@ class _SongsScreenState extends State<SongsScreen> {
   bool _loading = false;
   String? _error;
 
-  // ── Design tokens ────────────────────────────────────────────────
+  // ── Search Logic ──
+  final TextEditingController _searchController = TextEditingController();
+  String _searchQuery = '';
+
+  // ── Design tokens ──
   static const _bgDeep        = Color(0xFF09090B);
   static const _bgGlass       = Color(0xFF18181B);
-  static const _accent        = Color(0xFF6366F1);
   static const _textPrimary   = Color(0xFFFAFAFA);
   static const _textSecondary = Color(0xFFA1A1AA);
   static const _textMuted     = Color(0xFF71717A);
   static const _divider       = Color(0xFF27272A);
 
-  Future<void> _ensureLoaded(AppState app) async {
-    if (app.songsCache.isNotEmpty) return;
-    await _refresh(app);
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
   }
 
-  Future<void> _refresh(AppState app) async {
+  Future<void> _ensureLoaded(AppState app) async {
+    if (app.songsCache.isNotEmpty) return;
+    await app.refreshLibrarySongs(forceRescan: false);
+  }
+
+  Future<void> _refresh(AppState app, {bool forceRescan = true}) async {
+    if (_loading) return;
     setState(() { _loading = true; _error = null; });
     try {
-      await app.refreshLibrarySongs();
+      await app.refreshLibrarySongs(forceRescan: forceRescan);
     } catch (e) {
-      _error = e.toString();
+      if (mounted) setState(() => _error = e.toString());
     } finally {
       if (mounted) setState(() => _loading = false);
     }
   }
 
-  List<Song> _sorted(List<Song> songs) {
-    final copy = [...songs];
-    copy.sort((a, b) => a.title.toLowerCase().compareTo(b.title.toLowerCase()));
-    return _sort == SongSort.za ? copy.reversed.toList() : copy;
+  List<Song> _getFilteredAndSorted(List<Song> songs) {
+    // Filter based on search query
+    List<Song> filtered = songs.where((song) {
+      final title = song.title.toLowerCase();
+      final artist = song.artist.toLowerCase();
+      final query = _searchQuery.toLowerCase();
+      return title.contains(query) || artist.contains(query);
+    }).toList();
+
+    // Sort alphabetically
+    filtered.sort((a, b) => a.title.toLowerCase().compareTo(b.title.toLowerCase()));
+    return _sort == SongSort.za ? filtered.reversed.toList() : filtered;
   }
 
   @override
   Widget build(BuildContext context) {
-    final app  = context.watch<AppState>();
-    final size = MediaQuery.of(context).size;
+    final accent = Theme.of(context).colorScheme.primary;
+    final app    = context.watch<AppState>();
+    final size   = MediaQuery.of(context).size;
 
     return FutureBuilder<void>(
       future: _ensureLoaded(app),
       builder: (context, snap) {
-        final songs = _sorted(app.songsCache);
+        final displaySongs = _getFilteredAndSorted(app.songsCache);
 
         return Container(
           decoration: const BoxDecoration(
@@ -73,42 +91,22 @@ class _SongsScreenState extends State<SongsScreen> {
           ),
           child: Column(
             children: [
-              // ── Header bar ───────────────────────────────────────
-              _buildHeader(context, app, songs),
+              // ── Header (Title + Search) ──
+              _buildHeader(context, app, displaySongs, accent),
 
-              // ── Error banner ─────────────────────────────────────
-              if (_error != null)
-                Container(
-                  margin: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 14, vertical: 10),
-                  decoration: BoxDecoration(
-                    color: Colors.redAccent.withOpacity(0.12),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                        color: Colors.redAccent.withOpacity(0.3)),
-                  ),
-                  child: Row(
-                    children: [
-                      const Icon(Icons.error_outline_rounded,
-                          color: Colors.redAccent, size: 16),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          _error!,
-                          style: const TextStyle(
-                              color: Colors.redAccent, fontSize: 12),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
+              if (_error != null) _buildErrorBanner(),
 
-              // ── List / Empty state ────────────────────────────────
+              // ── List Area ──
               Expanded(
-                child: songs.isEmpty
-                    ? _buildEmptyState(context, app)
-                    : _buildSongList(context, app, songs, size),
+                child: RefreshIndicator(
+                  color: accent,
+                  backgroundColor: _bgGlass,
+                  strokeWidth: 2.5,
+                  onRefresh: () => _refresh(app, forceRescan: true),
+                  child: displaySongs.isEmpty && !_loading
+                      ? _buildEmptyState(context, app, accent)
+                      : _buildSongList(context, app, displaySongs, size, accent),
+                ),
               ),
             ],
           ),
@@ -117,78 +115,85 @@ class _SongsScreenState extends State<SongsScreen> {
     );
   }
 
-  // ── Header ───────────────────────────────────────────────────────
-  Widget _buildHeader(
-      BuildContext context, AppState app, List<Song> songs) {
+  Widget _buildHeader(BuildContext context, AppState app, List<Song> songs, Color accent) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 20, 16, 12),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Page label
-          const Text(
+          Text(
             'SONGS',
             style: TextStyle(
-              color: _textMuted,
+              color: accent.withOpacity(0.7),
               fontSize: 10,
-              fontWeight: FontWeight.w700,
+              fontWeight: FontWeight.bold,
               letterSpacing: 3,
             ),
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: 12),
 
-          // Title row + controls
+          // ── Luxury Search Bar ──
+          Container(
+            height: 46,
+            decoration: BoxDecoration(
+              color: _bgGlass,
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: _divider),
+            ),
+            child: TextField(
+              controller: _searchController,
+              onChanged: (val) => setState(() => _searchQuery = val),
+              style: const TextStyle(color: _textPrimary, fontSize: 14),
+              cursorColor: accent,
+              decoration: InputDecoration(
+                hintText: 'Search titles or artists...',
+                hintStyle: const TextStyle(color: _textMuted, fontSize: 14),
+                prefixIcon: Icon(Icons.search_rounded, color: accent.withOpacity(0.5), size: 20),
+                suffixIcon: _searchQuery.isNotEmpty
+                    ? IconButton(
+                  icon: const Icon(Icons.close_rounded, color: _textMuted, size: 18),
+                  onPressed: () {
+                    _searchController.clear();
+                    setState(() => _searchQuery = '');
+                  },
+                )
+                    : null,
+                border: InputBorder.none,
+                contentPadding: const EdgeInsets.symmetric(vertical: 12),
+              ),
+            ),
+          ),
+
+          const SizedBox(height: 16),
+
           Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              // Title + count
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
-                      'Your Tracks',
-                      style: TextStyle(
-                        color: _textPrimary,
-                        fontSize: 22,
-                        fontWeight: FontWeight.w700,
-                        letterSpacing: 0.2,
-                      ),
+                    Text(
+                      _searchQuery.isEmpty ? 'Your Tracks' : 'Search Results',
+                      style: const TextStyle(color: _textPrimary, fontSize: 22, fontWeight: FontWeight.bold),
                     ),
                     Text(
-                      '${songs.length} ${songs.length == 1 ? 'song' : 'songs'}',
-                      style: const TextStyle(
-                        color: _textSecondary,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w400,
-                      ),
+                      '${songs.length} songs',
+                      style: const TextStyle(color: _textSecondary, fontSize: 12),
                     ),
                   ],
                 ),
               ),
-
-              // Sort toggle
               _SortToggle(
                 current: _sort,
+                accentColor: accent,
                 onChanged: (s) => setState(() => _sort = s),
               ),
-
               const SizedBox(width: 8),
-
-              // Refresh button
               _IconCircleButton(
-                onTap: _loading ? null : () => _refresh(app),
+                onTap: _loading ? null : () => _refresh(app, forceRescan: true),
                 child: _loading
-                    ? const SizedBox(
-                  width: 16,
-                  height: 16,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    color: _textSecondary,
-                  ),
-                )
-                    : const Icon(Icons.refresh_rounded,
-                    color: _textSecondary, size: 18),
+                    ? SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: accent))
+                    : const Icon(Icons.refresh_rounded, color: _textSecondary, size: 18),
               ),
             ],
           ),
@@ -197,27 +202,18 @@ class _SongsScreenState extends State<SongsScreen> {
     );
   }
 
-  // ── Song list ────────────────────────────────────────────────────
-  Widget _buildSongList(BuildContext context, AppState app,
-      List<Song> songs, Size size) {
+  Widget _buildSongList(BuildContext context, AppState app, List<Song> songs, Size size, Color accent) {
     return ListView.separated(
-      padding: EdgeInsets.fromLTRB(
-        size.width * 0.04,
-        4,
-        size.width * 0.04,
-        120,
-      ),
+      physics: const BouncingScrollPhysics(parent: AlwaysScrollableScrollPhysics()),
+      padding: EdgeInsets.fromLTRB(size.width * 0.04, 4, size.width * 0.04, 120),
       itemCount: songs.length,
-      separatorBuilder: (_, __) => const Divider(
-        height: 1,
-        color: _divider,
-        indent: 64,
-      ),
+      separatorBuilder: (_, __) => const Divider(height: 1, color: _divider, indent: 64),
       itemBuilder: (context, index) {
         final song = songs[index];
         return _SongRow(
           song: song,
           index: index,
+          accentColor: accent,
           onPlay: () async {
             await app.player.setQueue(songs, startIndex: index);
             await app.player.play();
@@ -227,56 +223,55 @@ class _SongsScreenState extends State<SongsScreen> {
     );
   }
 
-  // ── Empty state ──────────────────────────────────────────────────
-  Widget _buildEmptyState(BuildContext context, AppState app) {
-    return Center(
+  Widget _buildEmptyState(BuildContext context, AppState app, Color accent) {
+    return SingleChildScrollView(
+      physics: const AlwaysScrollableScrollPhysics(),
       child: Padding(
-        padding: const EdgeInsets.all(32),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 80,
-              height: 80,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: _bgGlass,
-                border: Border.all(color: _divider),
+        padding: const EdgeInsets.only(top: 80),
+        child: Center(
+          child: Column(
+            children: [
+              Icon(
+                _searchQuery.isEmpty ? Icons.library_music_rounded : Icons.search_off_rounded,
+                size: 64,
+                color: _textMuted.withOpacity(0.3),
               ),
-              child: const Icon(Icons.library_music_rounded,
-                  size: 36, color: _textMuted),
-            ),
-            const SizedBox(height: 20),
-            Text(
-              Platform.isIOS
-                  ? 'No imported songs yet'
-                  : 'No songs found',
-              style: const TextStyle(
-                color: _textPrimary,
-                fontSize: 17,
-                fontWeight: FontWeight.w600,
+              const SizedBox(height: 16),
+              Text(
+                _searchQuery.isEmpty ? 'No songs found' : 'No results for "$_searchQuery"',
+                style: const TextStyle(color: _textSecondary, fontSize: 16, fontWeight: FontWeight.w500),
               ),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 8),
-            Text(
-              Platform.isIOS
-                  ? 'Use Import to add music from Files.'
-                  : 'Grant permission and refresh to scan your library.',
-              style: const TextStyle(
-                  color: _textSecondary, fontSize: 13, height: 1.5),
-              textAlign: TextAlign.center,
-            ),
-            if (Platform.isIOS) ...[
-              const SizedBox(height: 24),
-              _AccentButton(
-                icon: Icons.file_upload_rounded,
-                label: 'Import Songs',
-                onTap: () => context.read<AppState>().importSongs(),
-              ),
+              if (Platform.isIOS && _searchQuery.isEmpty) ...[
+                const SizedBox(height: 24),
+                _AccentButton(
+                  icon: Icons.file_upload_rounded,
+                  label: 'Import Songs',
+                  accentColor: accent,
+                  onTap: () => app.importSongs(),
+                ),
+              ],
             ],
-          ],
+          ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildErrorBanner() {
+    return Container(
+      margin: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.redAccent.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.redAccent.withOpacity(0.2)),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.error_outline_rounded, color: Colors.redAccent, size: 16),
+          const SizedBox(width: 8),
+          Expanded(child: Text(_error!, style: const TextStyle(color: Colors.redAccent, fontSize: 12))),
+        ],
       ),
     );
   }
@@ -287,11 +282,13 @@ class _SongsScreenState extends State<SongsScreen> {
 class _SongRow extends StatefulWidget {
   final Song song;
   final int index;
+  final Color accentColor;
   final VoidCallback onPlay;
 
   const _SongRow({
     required this.song,
     required this.index,
+    required this.accentColor,
     required this.onPlay,
   });
 
@@ -303,16 +300,21 @@ class _SongRowState extends State<_SongRow> {
   bool _pressed = false;
 
   static const _bgGlass       = Color(0xFF18181B);
-  static const _accent        = Color(0xFF6366F1);
   static const _textPrimary   = Color(0xFFFAFAFA);
   static const _textSecondary = Color(0xFFA1A1AA);
   static const _textMuted     = Color(0xFF71717A);
 
   @override
   Widget build(BuildContext context) {
+    final isPlaying = context.watch<AppState>().player.currentSong?.id == widget.song.id;
+    final accent = widget.accentColor;
+
     return GestureDetector(
       onTapDown: (_) => setState(() => _pressed = true),
-      onTapUp: (_) { setState(() => _pressed = false); widget.onPlay(); },
+      onTapUp: (_) {
+        setState(() => _pressed = false);
+        widget.onPlay();
+      },
       onTapCancel: () => setState(() => _pressed = false),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 110),
@@ -321,74 +323,58 @@ class _SongRowState extends State<_SongRow> {
         transformAlignment: Alignment.center,
         padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 10),
         decoration: BoxDecoration(
-          color: _pressed ? _bgGlass.withOpacity(0.6) : Colors.transparent,
+          color: _pressed || isPlaying ? _bgGlass.withOpacity(0.6) : Colors.transparent,
           borderRadius: BorderRadius.circular(12),
         ),
         child: Row(
           children: [
-            // Index badge
             SizedBox(
               width: 36,
               child: Text(
                 '${widget.index + 1}'.padLeft(2, '0'),
-                style: const TextStyle(
-                  color: _textMuted,
+                style: TextStyle(
+                  color: isPlaying ? accent : _textMuted,
                   fontSize: 11,
                   fontWeight: FontWeight.w600,
-                  letterSpacing: 0.5,
                 ),
                 textAlign: TextAlign.center,
               ),
             ),
-
             const SizedBox(width: 10),
-
-            // Song info
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
                     widget.song.title,
-                    style: const TextStyle(
-                      color: _textPrimary,
+                    style: TextStyle(
+                      color: isPlaying ? accent : _textPrimary,
                       fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                      letterSpacing: 0.1,
+                      fontWeight: isPlaying ? FontWeight.w700 : FontWeight.w600,
                     ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
                   const SizedBox(height: 3),
                   Text(
-                    widget.song.artist.isEmpty
-                        ? 'Unknown Artist'
-                        : widget.song.artist,
-                    style: const TextStyle(
-                      color: _textSecondary,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w400,
-                    ),
+                    widget.song.artist.isEmpty ? 'Unknown Artist' : widget.song.artist,
+                    style: const TextStyle(color: _textSecondary, fontSize: 12),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
                 ],
               ),
             ),
-
-            // Play icon
             Container(
               width: 34,
               height: 34,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: _pressed
-                    ? _accent.withOpacity(0.2)
-                    : Colors.transparent,
+                color: isPlaying ? accent.withOpacity(0.15) : Colors.transparent,
               ),
               child: Icon(
-                Icons.play_arrow_rounded,
-                color: _pressed ? _accent : _textMuted,
+                isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
+                color: isPlaying ? accent : _textMuted,
                 size: 20,
               ),
             ),
@@ -399,33 +385,33 @@ class _SongRowState extends State<_SongRow> {
   }
 }
 
-// ── Sort Toggle ───────────────────────────────────────────────────────────────
+// ── Sort Toggle ──────────────────────────────────────────────────────────────
 
 class _SortToggle extends StatelessWidget {
   final SongSort current;
+  final Color accentColor;
   final ValueChanged<SongSort> onChanged;
 
-  const _SortToggle({required this.current, required this.onChanged});
-
-  static const _bgGlass   = Color(0xFF18181B);
-  static const _accent    = Color(0xFF6366F1);
-  static const _textSecondary = Color(0xFFA1A1AA);
-  static const _divider   = Color(0xFF27272A);
+  const _SortToggle({
+    required this.current,
+    required this.accentColor,
+    required this.onChanged,
+  });
 
   @override
   Widget build(BuildContext context) {
     return Container(
       height: 34,
       decoration: BoxDecoration(
-        color: _bgGlass,
+        color: const Color(0xFF18181B),
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: _divider),
+        border: Border.all(color: const Color(0xFF27272A)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           _toggle('A–Z', SongSort.az),
-          Container(width: 1, height: 18, color: _divider),
+          Container(width: 1, height: 18, color: const Color(0xFF27272A)),
           _toggle('Z–A', SongSort.za),
         ],
       ),
@@ -441,17 +427,16 @@ class _SortToggle extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 14),
         height: 34,
         decoration: BoxDecoration(
-          color: active ? _accent.withOpacity(0.18) : Colors.transparent,
+          color: active ? accentColor.withOpacity(0.18) : Colors.transparent,
           borderRadius: BorderRadius.circular(9),
         ),
         alignment: Alignment.center,
         child: Text(
           label,
           style: TextStyle(
-            color: active ? _accent : _textSecondary,
+            color: active ? accentColor : const Color(0xFFA1A1AA),
             fontSize: 12,
             fontWeight: active ? FontWeight.w700 : FontWeight.w500,
-            letterSpacing: 0.3,
           ),
         ),
       ),
@@ -459,16 +444,13 @@ class _SortToggle extends StatelessWidget {
   }
 }
 
-// ── Shared small widgets ──────────────────────────────────────────────────────
+// ── Helper Widgets ───────────────────────────────────────────────────────────
 
 class _IconCircleButton extends StatelessWidget {
   final Widget child;
   final VoidCallback? onTap;
 
   const _IconCircleButton({required this.child, this.onTap});
-
-  static const _bgGlass = Color(0xFF18181B);
-  static const _divider = Color(0xFF27272A);
 
   @override
   Widget build(BuildContext context) {
@@ -479,8 +461,8 @@ class _IconCircleButton extends StatelessWidget {
         height: 36,
         decoration: BoxDecoration(
           shape: BoxShape.circle,
-          color: _bgGlass,
-          border: Border.all(color: _divider),
+          color: const Color(0xFF18181B),
+          border: Border.all(color: const Color(0xFF27272A)),
         ),
         child: Center(child: child),
       ),
@@ -491,52 +473,31 @@ class _IconCircleButton extends StatelessWidget {
 class _AccentButton extends StatelessWidget {
   final IconData icon;
   final String label;
+  final Color accentColor;
   final VoidCallback onTap;
 
-  const _AccentButton({
-    required this.icon,
-    required this.label,
-    required this.onTap,
-  });
-
-  static const _accent = Color(0xFF6366F1);
+  const _AccentButton({required this.icon, required this.label, required this.accentColor, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding:
-        const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
         decoration: BoxDecoration(
-          gradient: const LinearGradient(
-            colors: [Color(0xFF818CF8), _accent],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
+          gradient: LinearGradient(
+            colors: [accentColor.withOpacity(0.8), accentColor],
+            begin: Alignment.topLeft, end: Alignment.bottomRight,
           ),
           borderRadius: BorderRadius.circular(50),
-          boxShadow: [
-            BoxShadow(
-              color: _accent.withOpacity(0.35),
-              blurRadius: 16,
-              offset: const Offset(0, 4),
-            ),
-          ],
+          boxShadow: [BoxShadow(color: accentColor.withOpacity(0.35), blurRadius: 16, offset: const Offset(0, 4))],
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
             Icon(icon, color: Colors.white, size: 18),
             const SizedBox(width: 8),
-            Text(
-              label,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-                letterSpacing: 0.3,
-              ),
-            ),
+            Text(label, style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w600)),
           ],
         ),
       ),

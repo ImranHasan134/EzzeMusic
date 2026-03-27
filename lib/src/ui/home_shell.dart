@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../state/app_state.dart';
 import 'screens/playlists_screen.dart';
 import 'screens/songs_screen.dart';
 import 'screens/settings_screen.dart';
 import 'screens/now_playing_screen.dart';
 import 'widgets/mini_player_bar.dart';
-
-enum HomeTab { player, songs, playlists, settings }
 
 class HomeShell extends StatefulWidget {
   const HomeShell({super.key});
@@ -15,15 +15,9 @@ class HomeShell extends StatefulWidget {
 }
 
 class _HomeShellState extends State<HomeShell> {
-  int _index = 0;
+  int _index = 1; // Default to Songs tab
 
-  // ── Design tokens ────────────────────────────────────────────────
-  static const _bgDeep        = Color(0xFF09090B);
-  static const _bgGlass       = Color(0xFF18181B);
-  static const _accent        = Color(0xFF6366F1);
-  static const _textSecondary = Color(0xFFA1A1AA);
-  static const _textMuted     = Color(0xFF71717A);
-  static const _divider       = Color(0xFF27272A);
+  static const _bgDeep = Color(0xFF09090B);
 
   final _tabs = const <Widget>[
     NowPlayingScreen(),
@@ -41,6 +35,9 @@ class _HomeShellState extends State<HomeShell> {
 
   @override
   Widget build(BuildContext context) {
+    // Grab the dynamic accent from the theme we set in main.dart
+    final accent = Theme.of(context).colorScheme.primary;
+
     return Scaffold(
       backgroundColor: _bgDeep,
       body: SafeArea(
@@ -52,6 +49,7 @@ class _HomeShellState extends State<HomeShell> {
                 children: _tabs,
               ),
             ),
+            // Show mini player only when not on the NowPlayingScreen (index 0)
             if (_index != 0)
               MiniPlayerBar(
                 onTap: () => setState(() => _index = 0),
@@ -62,6 +60,7 @@ class _HomeShellState extends State<HomeShell> {
       bottomNavigationBar: _ThemedNavBar(
         selectedIndex: _index,
         destinations: _destinations,
+        accentColor: accent,
         onTap: (i) => setState(() => _index = i),
       ),
     );
@@ -73,16 +72,18 @@ class _HomeShellState extends State<HomeShell> {
 class _ThemedNavBar extends StatelessWidget {
   final int selectedIndex;
   final List<(IconData, IconData, String)> destinations;
+  final Color accentColor;
   final ValueChanged<int> onTap;
 
   const _ThemedNavBar({
     required this.selectedIndex,
     required this.destinations,
+    required this.accentColor,
     required this.onTap,
   });
 
-  static const _bgGlass  = Color(0xFF18181B);
-  static const _divider  = Color(0xFF27272A);
+  static const _bgGlass = Color(0xFF18181B);
+  static const _divider = Color(0xFF27272A);
 
   @override
   Widget build(BuildContext context) {
@@ -109,6 +110,7 @@ class _ThemedNavBar extends StatelessWidget {
               inactiveIcon: inactiveIcon,
               label: label,
               isSelected: isSelected,
+              accentColor: accentColor,
               onTap: () => onTap(i),
             );
           }),
@@ -125,6 +127,7 @@ class _NavItem extends StatefulWidget {
   final IconData inactiveIcon;
   final String label;
   final bool isSelected;
+  final Color accentColor;
   final VoidCallback onTap;
 
   const _NavItem({
@@ -132,6 +135,7 @@ class _NavItem extends StatefulWidget {
     required this.inactiveIcon,
     required this.label,
     required this.isSelected,
+    required this.accentColor,
     required this.onTap,
   });
 
@@ -144,8 +148,7 @@ class _NavItemState extends State<_NavItem>
   late AnimationController _controller;
   late Animation<double> _scaleAnim;
 
-  static const _accent        = Color(0xFF6366F1);
-  static const _textMuted     = Color(0xFF71717A);
+  static const _textMuted = Color(0xFF71717A);
 
   @override
   void initState() {
@@ -153,10 +156,8 @@ class _NavItemState extends State<_NavItem>
     _controller = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 150),
-      lowerBound: 0.0,
-      upperBound: 1.0,
     );
-    _scaleAnim = Tween<double>(begin: 1.0, end: 0.88).animate(
+    _scaleAnim = Tween<double>(begin: 1.0, end: 0.92).animate(
       CurvedAnimation(parent: _controller, curve: Curves.easeOut),
     );
   }
@@ -169,6 +170,8 @@ class _NavItemState extends State<_NavItem>
 
   @override
   Widget build(BuildContext context) {
+    final accent = widget.accentColor;
+
     return GestureDetector(
       onTapDown: (_) => _controller.forward(),
       onTapUp: (_) {
@@ -188,39 +191,47 @@ class _NavItemState extends State<_NavItem>
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              // Pill indicator + icon
+              // Pill indicator + icon with Dynamic Glow
               AnimatedContainer(
-                duration: const Duration(milliseconds: 200),
-                curve: Curves.easeOut,
+                duration: const Duration(milliseconds: 300),
+                curve: Curves.easeOutCubic,
                 padding: const EdgeInsets.symmetric(
-                    horizontal: 16, vertical: 6),
+                    horizontal: 18, vertical: 6),
                 decoration: BoxDecoration(
                   color: widget.isSelected
-                      ? _accent.withOpacity(0.15)
+                      ? accent.withOpacity(0.12)
                       : Colors.transparent,
-                  borderRadius: BorderRadius.circular(50),
+                  borderRadius: BorderRadius.circular(24),
+                  // ADDED: Subtle glow for the luxury feel
+                  boxShadow: widget.isSelected ? [
+                    BoxShadow(
+                      color: accent.withOpacity(0.08),
+                      blurRadius: 12,
+                      spreadRadius: 2,
+                    )
+                  ] : [],
                 ),
                 child: Icon(
                   widget.isSelected
                       ? widget.activeIcon
                       : widget.inactiveIcon,
-                  color: widget.isSelected ? _accent : _textMuted,
+                  color: widget.isSelected ? accent : _textMuted,
                   size: 24,
                 ),
               ),
 
-              const SizedBox(height: 3),
+              const SizedBox(height: 4),
 
               // Label
               AnimatedDefaultTextStyle(
                 duration: const Duration(milliseconds: 200),
                 style: TextStyle(
-                  color: widget.isSelected ? _accent : _textMuted,
+                  color: widget.isSelected ? accent : _textMuted,
                   fontSize: 10,
                   fontWeight: widget.isSelected
                       ? FontWeight.w700
-                      : FontWeight.w400,
-                  letterSpacing: 0.3,
+                      : FontWeight.w500,
+                  letterSpacing: 0.2,
                 ),
                 child: Text(widget.label),
               ),

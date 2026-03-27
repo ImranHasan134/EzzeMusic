@@ -3,17 +3,15 @@ import 'package:provider/provider.dart';
 
 import '../../models/song.dart';
 import '../../state/app_state.dart';
-import '../widgets/mini_song_tile.dart';
 
 class PlaylistDetailScreen extends StatelessWidget {
   final String playlistId;
 
   const PlaylistDetailScreen({super.key, required this.playlistId});
 
-  // ── Design tokens ────────────────────────────────────────────────
+  // ── Design tokens (Static) ───────────────────────────────────────
   static const _bgDeep        = Color(0xFF09090B);
   static const _bgGlass       = Color(0xFF18181B);
-  static const _accent        = Color(0xFF6366F1);
   static const _textPrimary   = Color(0xFFFAFAFA);
   static const _textSecondary = Color(0xFFA1A1AA);
   static const _textMuted     = Color(0xFF71717A);
@@ -21,6 +19,8 @@ class PlaylistDetailScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // 1. Link to Dynamic Accent
+    final accent   = Theme.of(context).colorScheme.primary;
     final app      = context.watch<AppState>();
     final playlist = app.playlists.firstWhere((p) => p.id == playlistId);
     final size     = MediaQuery.of(context).size;
@@ -34,7 +34,8 @@ class PlaylistDetailScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: _bgDeep,
       appBar: _buildAppBar(context, playlist),
-      floatingActionButton: _buildFAB(context),
+      // FAB now uses Dynamic Accent
+      floatingActionButton: _buildFAB(context, accent),
       body: Container(
         decoration: const BoxDecoration(
           gradient: RadialGradient(
@@ -45,7 +46,7 @@ class PlaylistDetailScreen extends StatelessWidget {
         ),
         child: SafeArea(
           child: songs.isEmpty
-              ? _buildEmptyState(context)
+              ? _buildEmptyState(context, accent)
               : _buildSongList(context, app, songs, size),
         ),
       ),
@@ -87,7 +88,6 @@ class PlaylistDetailScreen extends StatelessWidget {
         ],
       ),
       actions: [
-        // Edit name
         _IconCircleButton(
           onTap: () => _renameDialog(context, playlist),
           child: const Icon(Icons.drive_file_rename_outline_rounded,
@@ -98,8 +98,8 @@ class PlaylistDetailScreen extends StatelessWidget {
     );
   }
 
-  // ── FAB ──────────────────────────────────────────────────────────
-  Widget _buildFAB(BuildContext context) {
+  // ── FAB (Now Dynamic) ───────────────────────────────────────────
+  Widget _buildFAB(BuildContext context, Color accent) {
     return GestureDetector(
       onTap: () => _openAddSongs(context),
       child: Container(
@@ -107,14 +107,14 @@ class PlaylistDetailScreen extends StatelessWidget {
         height: 54,
         decoration: BoxDecoration(
           shape: BoxShape.circle,
-          gradient: const LinearGradient(
-            colors: [Color(0xFF818CF8), _accent],
+          gradient: LinearGradient(
+            colors: [accent.withOpacity(0.8), accent],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           ),
           boxShadow: [
             BoxShadow(
-              color: _accent.withOpacity(0.35),
+              color: accent.withOpacity(0.35),
               blurRadius: 18,
               offset: const Offset(0, 6),
             ),
@@ -154,8 +154,8 @@ class PlaylistDetailScreen extends StatelessWidget {
     );
   }
 
-  // ── Empty state ──────────────────────────────────────────────────
-  Widget _buildEmptyState(BuildContext context) {
+  // ── Empty state (Now Dynamic) ─────────────────────────────────────
+  Widget _buildEmptyState(BuildContext context, Color accent) {
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(32),
@@ -196,15 +196,15 @@ class PlaylistDetailScreen extends StatelessWidget {
                 padding: const EdgeInsets.symmetric(
                     horizontal: 24, vertical: 12),
                 decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: [Color(0xFF818CF8), _accent],
+                  gradient: LinearGradient(
+                    colors: [accent.withOpacity(0.8), accent],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   ),
                   borderRadius: BorderRadius.circular(50),
                   boxShadow: [
                     BoxShadow(
-                      color: _accent.withOpacity(0.35),
+                      color: accent.withOpacity(0.35),
                       blurRadius: 16,
                       offset: const Offset(0, 4),
                     ),
@@ -234,9 +234,11 @@ class PlaylistDetailScreen extends StatelessWidget {
     );
   }
 
-  // ── Rename dialog ────────────────────────────────────────────────
+  // ── Rename dialog (Now Dynamic) ──────────────────────────────────
   Future<void> _renameDialog(BuildContext context, playlist) async {
     final ctrl = TextEditingController(text: playlist.name);
+    final accent = Theme.of(context).colorScheme.primary;
+
     final ok = await showDialog<bool>(
       context: context,
       barrierColor: Colors.black.withOpacity(0.7),
@@ -245,6 +247,7 @@ class PlaylistDetailScreen extends StatelessWidget {
         hint: 'Playlist name',
         confirmLabel: 'Save',
         controller: ctrl,
+        accentColor: accent,
       ),
     );
     if (ok != true) return;
@@ -281,7 +284,7 @@ class PlaylistDetailScreen extends StatelessWidget {
   }
 }
 
-// ── Detail Song Row ───────────────────────────────────────────────────────────
+// ── Detail Song Row (Dynamic Accent) ─────────────────────────────────────────
 
 class _DetailSongRow extends StatefulWidget {
   final Song song;
@@ -304,7 +307,6 @@ class _DetailSongRowState extends State<_DetailSongRow> {
   bool _pressed = false;
 
   static const _bgGlass       = Color(0xFF18181B);
-  static const _accent        = Color(0xFF6366F1);
   static const _textPrimary   = Color(0xFFFAFAFA);
   static const _textSecondary = Color(0xFFA1A1AA);
   static const _textMuted     = Color(0xFF71717A);
@@ -330,7 +332,6 @@ class _DetailSongRowState extends State<_DetailSongRow> {
         ),
         child: Row(
           children: [
-            // Index
             SizedBox(
               width: 36,
               child: Text(
@@ -344,55 +345,30 @@ class _DetailSongRowState extends State<_DetailSongRow> {
                 textAlign: TextAlign.center,
               ),
             ),
-
             const SizedBox(width: 10),
-
-            // Song info
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    widget.song.title.isEmpty
-                        ? 'Unknown Title'
-                        : widget.song.title,
-                    style: const TextStyle(
-                      color: _textPrimary,
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                      letterSpacing: 0.1,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
+                    widget.song.title.isEmpty ? 'Unknown Title' : widget.song.title,
+                    style: const TextStyle(color: _textPrimary, fontSize: 14, fontWeight: FontWeight.w600),
+                    maxLines: 1, overflow: TextOverflow.ellipsis,
                   ),
                   const SizedBox(height: 3),
                   Text(
-                    widget.song.artist.isEmpty
-                        ? 'Unknown Artist'
-                        : widget.song.artist,
-                    style: const TextStyle(
-                      color: _textSecondary,
-                      fontSize: 12,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
+                    widget.song.artist.isEmpty ? 'Unknown Artist' : widget.song.artist,
+                    style: const TextStyle(color: _textSecondary, fontSize: 12),
+                    maxLines: 1, overflow: TextOverflow.ellipsis,
                   ),
                 ],
               ),
             ),
-
-            // Remove button
             GestureDetector(
               onTap: widget.onRemove,
               child: Container(
-                width: 34,
-                height: 34,
-                decoration: const BoxDecoration(shape: BoxShape.circle),
-                child: Icon(
-                  Icons.remove_circle_outline_rounded,
-                  color: Colors.redAccent.withOpacity(0.8),
-                  size: 20,
-                ),
+                width: 34, height: 34,
+                child: Icon(Icons.remove_circle_outline_rounded, color: Colors.redAccent.withOpacity(0.8), size: 20),
               ),
             ),
           ],
@@ -402,24 +378,22 @@ class _DetailSongRowState extends State<_DetailSongRow> {
   }
 }
 
-// ── Add Songs Bottom Sheet ────────────────────────────────────────────────────
+// ── Add Songs Bottom Sheet (Dynamic Accent) ──────────────────────────────────
 
 class _AddSongsSheet extends StatelessWidget {
   final String playlistId;
-
   const _AddSongsSheet({required this.playlistId});
 
   static const _bgGlass       = Color(0xFF18181B);
-  static const _accent        = Color(0xFF6366F1);
   static const _textPrimary   = Color(0xFFFAFAFA);
-  static const _textSecondary = Color(0xFFA1A1AA);
   static const _textMuted     = Color(0xFF71717A);
   static const _divider       = Color(0xFF27272A);
 
   @override
   Widget build(BuildContext context) {
-    final songs = context.watch<AppState>().songsCache;
-    final size  = MediaQuery.of(context).size;
+    final accent = Theme.of(context).colorScheme.primary;
+    final songs  = context.watch<AppState>().songsCache;
+    final size   = MediaQuery.of(context).size;
 
     return Container(
       height: size.height * 0.85,
@@ -430,20 +404,9 @@ class _AddSongsSheet extends StatelessWidget {
       ),
       child: Column(
         children: [
-          // Drag handle
           const SizedBox(height: 12),
-          Container(
-            width: 36,
-            height: 4,
-            decoration: BoxDecoration(
-              color: _divider,
-              borderRadius: BorderRadius.circular(2),
-            ),
-          ),
-
+          Container(width: 36, height: 4, decoration: BoxDecoration(color: _divider, borderRadius: BorderRadius.circular(2))),
           const SizedBox(height: 16),
-
-          // Header
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20),
             child: Row(
@@ -452,65 +415,31 @@ class _AddSongsSheet extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
-                        'ADD SONGS',
-                        style: TextStyle(
-                          color: _textMuted,
-                          fontSize: 10,
-                          fontWeight: FontWeight.w700,
-                          letterSpacing: 3,
-                        ),
-                      ),
+                      const Text('ADD SONGS', style: TextStyle(color: _textMuted, fontSize: 10, fontWeight: FontWeight.w700, letterSpacing: 3)),
                       const SizedBox(height: 2),
-                      Text(
-                        '${songs.length} available',
-                        style: const TextStyle(
-                          color: _textPrimary,
-                          fontSize: 18,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
+                      Text('${songs.length} available', style: const TextStyle(color: _textPrimary, fontSize: 18, fontWeight: FontWeight.w700)),
                     ],
                   ),
                 ),
                 GestureDetector(
                   onTap: () => Navigator.pop(context),
-                  child: Container(
-                    width: 32,
-                    height: 32,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: _bgGlass,
-                      border: Border.all(color: _divider),
-                    ),
-                    child: const Icon(Icons.close_rounded,
-                        color: _textSecondary, size: 16),
-                  ),
+                  child: Container(width: 32, height: 32, decoration: BoxDecoration(shape: BoxShape.circle, color: _bgGlass, border: Border.all(color: _divider)), child: const Icon(Icons.close_rounded, color: Color(0xFFA1A1AA), size: 16)),
                 ),
               ],
             ),
           ),
-
           const SizedBox(height: 12),
           const Divider(height: 1, color: _divider),
-
-          // List
           Expanded(
             child: ListView.separated(
-              padding: EdgeInsets.fromLTRB(
-                  size.width * 0.04, 8, size.width * 0.04, 32),
+              padding: EdgeInsets.fromLTRB(size.width * 0.04, 8, size.width * 0.04, 32),
               itemCount: songs.length,
-              separatorBuilder: (_, __) =>
-              const Divider(height: 1, color: _divider, indent: 60),
+              separatorBuilder: (_, __) => const Divider(height: 1, color: _divider, indent: 60),
               itemBuilder: (context, index) {
                 final s = songs[index];
                 return _AddSongRow(
-                  song: s,
-                  index: index,
-                  onAdd: () => context.read<AppState>().addSongToPlaylist(
-                    playlistId: playlistId,
-                    songId: s.id,
-                  ),
+                  song: s, index: index, accentColor: accent,
+                  onAdd: () => context.read<AppState>().addSongToPlaylist(playlistId: playlistId, songId: s.id),
                 );
               },
             ),
@@ -521,18 +450,15 @@ class _AddSongsSheet extends StatelessWidget {
   }
 }
 
-// ── Add Song Row ──────────────────────────────────────────────────────────────
+// ── Add Song Row (Dynamic Accent) ──────────────────────────────────────────────
 
 class _AddSongRow extends StatefulWidget {
   final Song song;
   final int index;
+  final Color accentColor;
   final VoidCallback onAdd;
 
-  const _AddSongRow({
-    required this.song,
-    required this.index,
-    required this.onAdd,
-  });
+  const _AddSongRow({required this.song, required this.index, required this.accentColor, required this.onAdd});
 
   @override
   State<_AddSongRow> createState() => _AddSongRowState();
@@ -542,7 +468,6 @@ class _AddSongRowState extends State<_AddSongRow> {
   bool _added  = false;
   bool _pressed = false;
 
-  static const _accent        = Color(0xFF6366F1);
   static const _textPrimary   = Color(0xFFFAFAFA);
   static const _textSecondary = Color(0xFFA1A1AA);
   static const _textMuted     = Color(0xFF71717A);
@@ -564,97 +489,41 @@ class _AddSongRowState extends State<_AddSongRow> {
         ),
         child: Row(
           children: [
-            // Index
             SizedBox(
               width: 36,
               child: Text(
                 '${widget.index + 1}'.padLeft(2, '0'),
-                style: const TextStyle(
-                  color: _textMuted,
-                  fontSize: 11,
-                  fontWeight: FontWeight.w600,
-                  letterSpacing: 0.5,
-                ),
+                style: const TextStyle(color: _textMuted, fontSize: 11, fontWeight: FontWeight.w600),
                 textAlign: TextAlign.center,
               ),
             ),
-
             const SizedBox(width: 10),
-
-            // Song info
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    widget.song.title.isEmpty
-                        ? 'Unknown Title'
-                        : widget.song.title,
-                    style: const TextStyle(
-                      color: _textPrimary,
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                      letterSpacing: 0.1,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
+                  Text(widget.song.title.isEmpty ? 'Unknown Title' : widget.song.title, style: const TextStyle(color: _textPrimary, fontSize: 14, fontWeight: FontWeight.w600)),
                   const SizedBox(height: 3),
-                  Text(
-                    widget.song.artist.isEmpty
-                        ? 'Unknown Artist'
-                        : widget.song.artist,
-                    style: const TextStyle(
-                        color: _textSecondary, fontSize: 12),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
+                  Text(widget.song.artist.isEmpty ? 'Unknown Artist' : widget.song.artist, style: const TextStyle(color: _textSecondary, fontSize: 12)),
                 ],
               ),
             ),
-
-            // Add / Added button
             GestureDetector(
-              onTap: _added
-                  ? null
-                  : () {
-                widget.onAdd();
-                setState(() => _added = true);
-              },
+              onTap: _added ? null : () { widget.onAdd(); setState(() => _added = true); },
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 200),
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 12, vertical: 6),
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                 decoration: BoxDecoration(
-                  color: _added
-                      ? _accent.withOpacity(0.15)
-                      : _bgGlass,
+                  color: _added ? widget.accentColor.withOpacity(0.15) : _bgGlass,
                   borderRadius: BorderRadius.circular(50),
-                  border: Border.all(
-                    color: _added
-                        ? _accent.withOpacity(0.4)
-                        : _divider,
-                  ),
+                  border: Border.all(color: _added ? widget.accentColor.withOpacity(0.4) : _divider),
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(
-                      _added
-                          ? Icons.check_rounded
-                          : Icons.add_rounded,
-                      color: _added ? _accent : _textSecondary,
-                      size: 14,
-                    ),
+                    Icon(_added ? Icons.check_rounded : Icons.add_rounded, color: _added ? widget.accentColor : _textSecondary, size: 14),
                     const SizedBox(width: 4),
-                    Text(
-                      _added ? 'Added' : 'Add',
-                      style: TextStyle(
-                        color: _added ? _accent : _textSecondary,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
+                    Text(_added ? 'Added' : 'Add', style: TextStyle(color: _added ? widget.accentColor : _textSecondary, fontSize: 12, fontWeight: FontWeight.w500)),
                   ],
                 ),
               ),
@@ -666,27 +535,16 @@ class _AddSongRowState extends State<_AddSongRow> {
   }
 }
 
-// ── Themed Dialog (shared) ────────────────────────────────────────────────────
+// ── Themed Dialog (Dynamic Accent) ────────────────────────────────────────────
 
 class _ThemedDialog extends StatelessWidget {
   final String title;
   final String hint;
   final String confirmLabel;
   final TextEditingController controller;
+  final Color accentColor;
 
-  const _ThemedDialog({
-    required this.title,
-    required this.hint,
-    required this.confirmLabel,
-    required this.controller,
-  });
-
-  static const _bgGlass       = Color(0xFF18181B);
-  static const _accent        = Color(0xFF6366F1);
-  static const _textPrimary   = Color(0xFFFAFAFA);
-  static const _textSecondary = Color(0xFFA1A1AA);
-  static const _textMuted     = Color(0xFF71717A);
-  static const _divider       = Color(0xFF27272A);
+  const _ThemedDialog({required this.title, required this.hint, required this.confirmLabel, required this.controller, required this.accentColor});
 
   @override
   Widget build(BuildContext context) {
@@ -695,53 +553,25 @@ class _ThemedDialog extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(24),
         decoration: BoxDecoration(
-          color: _bgGlass,
+          color: const Color(0xFF18181B),
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: _divider),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.5),
-              blurRadius: 32,
-              offset: const Offset(0, 12),
-            ),
-          ],
+          border: Border.all(color: const Color(0xFF27272A)),
+          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.5), blurRadius: 32, offset: const Offset(0, 12))],
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              title,
-              style: const TextStyle(
-                color: _textPrimary,
-                fontSize: 17,
-                fontWeight: FontWeight.w700,
-                letterSpacing: 0.2,
-              ),
-            ),
+            Text(title, style: const TextStyle(color: Colors.white, fontSize: 17, fontWeight: FontWeight.w700)),
             const SizedBox(height: 20),
             Container(
-              decoration: BoxDecoration(
-                color: const Color(0xFF09090B),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: _divider),
-              ),
+              decoration: BoxDecoration(color: const Color(0xFF09090B), borderRadius: BorderRadius.circular(12), border: Border.all(color: const Color(0xFF27272A))),
               child: TextField(
                 controller: controller,
                 autofocus: true,
-                style: const TextStyle(
-                    color: _textPrimary,
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500),
-                cursorColor: _accent,
-                decoration: InputDecoration(
-                  hintText: hint,
-                  hintStyle:
-                  const TextStyle(color: _textMuted, fontSize: 14),
-                  border: InputBorder.none,
-                  contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 16, vertical: 14),
-                ),
+                style: const TextStyle(color: Colors.white, fontSize: 14),
+                cursorColor: accentColor,
+                decoration: InputDecoration(hintText: hint, hintStyle: const TextStyle(color: Color(0xFF71717A), fontSize: 14), border: InputBorder.none, contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14)),
               ),
             ),
             const SizedBox(height: 20),
@@ -752,19 +582,9 @@ class _ThemedDialog extends StatelessWidget {
                     onTap: () => Navigator.pop(context, false),
                     child: Container(
                       padding: const EdgeInsets.symmetric(vertical: 12),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF09090B),
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: _divider),
-                      ),
+                      decoration: BoxDecoration(color: const Color(0xFF09090B), borderRadius: BorderRadius.circular(12), border: Border.all(color: const Color(0xFF27272A))),
                       alignment: Alignment.center,
-                      child: const Text(
-                        'Cancel',
-                        style: TextStyle(
-                            color: _textSecondary,
-                            fontSize: 14,
-                            fontWeight: FontWeight.w500),
-                      ),
+                      child: const Text('Cancel', style: TextStyle(color: Color(0xFFA1A1AA), fontSize: 14)),
                     ),
                   ),
                 ),
@@ -775,29 +595,12 @@ class _ThemedDialog extends StatelessWidget {
                     child: Container(
                       padding: const EdgeInsets.symmetric(vertical: 12),
                       decoration: BoxDecoration(
-                        gradient: const LinearGradient(
-                          colors: [Color(0xFF818CF8), _accent],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        ),
+                        gradient: LinearGradient(colors: [accentColor.withOpacity(0.8), accentColor], begin: Alignment.topLeft, end: Alignment.bottomRight),
                         borderRadius: BorderRadius.circular(12),
-                        boxShadow: [
-                          BoxShadow(
-                            color: _accent.withOpacity(0.35),
-                            blurRadius: 12,
-                            offset: const Offset(0, 4),
-                          ),
-                        ],
+                        boxShadow: [BoxShadow(color: accentColor.withOpacity(0.35), blurRadius: 12, offset: const Offset(0, 4))],
                       ),
                       alignment: Alignment.center,
-                      child: Text(
-                        confirmLabel,
-                        style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
-                            letterSpacing: 0.2),
-                      ),
+                      child: Text(confirmLabel, style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w600)),
                     ),
                   ),
                 ),
@@ -810,31 +613,17 @@ class _ThemedDialog extends StatelessWidget {
   }
 }
 
-// ── Icon Circle Button (shared utility) ──────────────────────────────────────
+// ── Icon Circle Button (Static Design) ──────────────────────────────────────
 
 class _IconCircleButton extends StatelessWidget {
   final Widget child;
   final VoidCallback? onTap;
-
   const _IconCircleButton({required this.child, this.onTap});
-
-  static const _bgGlass = Color(0xFF18181B);
-  static const _divider = Color(0xFF27272A);
-
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: onTap,
-      child: Container(
-        width: 36,
-        height: 36,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          color: _bgGlass,
-          border: Border.all(color: _divider),
-        ),
-        child: Center(child: child),
-      ),
+      child: Container(width: 36, height: 36, decoration: BoxDecoration(shape: BoxShape.circle, color: const Color(0xFF18181B), border: Border.all(color: const Color(0xFF27272A))), child: Center(child: child)),
     );
   }
 }

@@ -7,13 +7,13 @@ class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
 
   // ── Design tokens ────────────────────────────────────────────────
-  static const _bgDeep        = Color(0xFF0D0D14);
-  static const _bgGlass       = Color(0xFF1E1E2A);
-  static const _accent        = Color(0xFFFF6B35);
-  static const _textPrimary   = Color(0xFFF0F0F5);
-  static const _textSecondary = Color(0xFF8A8A9A);
-  static const _textMuted     = Color(0xFF4A4A5A);
-  static const _divider       = Color(0xFF252530);
+  static const _bgDeep        = Color(0xFF09090B);
+  static const _bgGlass       = Color(0xFF18181B);
+  static const _accent        = Color(0xFF6366F1);
+  static const _textPrimary   = Color(0xFFFAFAFA);
+  static const _textSecondary = Color(0xFFA1A1AA);
+  static const _textMuted     = Color(0xFF71717A);
+  static const _divider       = Color(0xFF27272A);
 
   @override
   Widget build(BuildContext context) {
@@ -25,7 +25,7 @@ class SettingsScreen extends StatelessWidget {
         gradient: RadialGradient(
           center: Alignment(0, -0.4),
           radius: 1.1,
-          colors: [Color(0xFF1A1020), _bgDeep],
+          colors: [Color(0xFF18181B), _bgDeep],
         ),
       ),
       child: ListView(
@@ -52,6 +52,8 @@ class SettingsScreen extends StatelessWidget {
               letterSpacing: 0.2,
             ),
           ),
+
+          const SizedBox(height: 16),
 
           _SettingsCard(
             children: [
@@ -101,34 +103,14 @@ class SettingsScreen extends StatelessWidget {
   }
 }
 
-// ── Section Label ─────────────────────────────────────────────────────────────
-
-class _SectionLabel extends StatelessWidget {
-  final String label;
-  const _SectionLabel({required this.label});
-
-  @override
-  Widget build(BuildContext context) {
-    return Text(
-      label,
-      style: const TextStyle(
-        color: Color(0xFF4A4A5A),
-        fontSize: 10,
-        fontWeight: FontWeight.w700,
-        letterSpacing: 2.5,
-      ),
-    );
-  }
-}
-
 // ── Settings Card ─────────────────────────────────────────────────────────────
 
 class _SettingsCard extends StatelessWidget {
   final List<Widget> children;
   const _SettingsCard({required this.children});
 
-  static const _bgGlass = Color(0xFF1E1E2A);
-  static const _divider = Color(0xFF252530);
+  static const _bgGlass = Color(0xFF18181B);
+  static const _divider = Color(0xFF27272A);
 
   @override
   Widget build(BuildContext context) {
@@ -169,12 +151,12 @@ class _SettingsTile extends StatefulWidget {
 class _SettingsTileState extends State<_SettingsTile> {
   bool _pressed = false;
 
-  static const _bgGlass       = Color(0xFF1E1E2A);
-  static const _accent        = Color(0xFFFF6B35);
-  static const _textPrimary   = Color(0xFFF0F0F5);
-  static const _textSecondary = Color(0xFF8A8A9A);
-  static const _textMuted     = Color(0xFF4A4A5A);
-  static const _divider       = Color(0xFF252530);
+  static const _bgGlass       = Color(0xFF18181B);
+  static const _accent        = Color(0xFF6366F1);
+  static const _textPrimary   = Color(0xFFFAFAFA);
+  static const _textSecondary = Color(0xFFA1A1AA);
+  static const _textMuted     = Color(0xFF71717A);
+  static const _divider       = Color(0xFF27272A);
 
   @override
   Widget build(BuildContext context) {
@@ -205,11 +187,11 @@ class _SettingsTileState extends State<_SettingsTile> {
                 shape: BoxShape.circle,
                 color: widget.isActive
                     ? _accent.withOpacity(0.15)
-                    : const Color(0xFF252530),
+                    : const Color(0xFF27272A),
                 border: Border.all(
                   color: widget.isActive
                       ? _accent.withOpacity(0.3)
-                      : const Color(0xFF2E2E3A),
+                      : const Color(0xFF3F3F46),
                 ),
               ),
               child: Icon(
@@ -271,12 +253,12 @@ class _SleepTimerSheet extends StatelessWidget {
 
   const _SleepTimerSheet({required this.onSelect});
 
-  static const _bgGlass       = Color(0xFF1E1E2A);
-  static const _accent        = Color(0xFFFF6B35);
-  static const _textPrimary   = Color(0xFFF0F0F5);
-  static const _textSecondary = Color(0xFF8A8A9A);
-  static const _textMuted     = Color(0xFF4A4A5A);
-  static const _divider       = Color(0xFF252530);
+  static const _bgGlass       = Color(0xFF18181B);
+  static const _accent        = Color(0xFF6366F1);
+  static const _textPrimary   = Color(0xFFFAFAFA);
+  static const _textSecondary = Color(0xFFA1A1AA);
+  static const _textMuted     = Color(0xFF71717A);
+  static const _divider       = Color(0xFF27272A);
 
   static const _options = [
     (null,                        Icons.timer_off_rounded,    'Off',        'Disable sleep timer'),
@@ -289,7 +271,7 @@ class _SleepTimerSheet extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: const BoxDecoration(
-        color: Color(0xFF13131A),
+        color: Color(0xFF09090B),
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
         border: Border(top: BorderSide(color: _divider)),
       ),
@@ -399,10 +381,9 @@ class _TimerOptionTile extends StatefulWidget {
 class _TimerOptionTileState extends State<_TimerOptionTile> {
   bool _pressed = false;
 
-  static const _bgGlass       = Color(0xFF1E1E2A);
-  static const _accent        = Color(0xFFFF6B35);
-  static const _textPrimary   = Color(0xFFF0F0F5);
-  static const _textSecondary = Color(0xFF8A8A9A);
+  static const _bgGlass       = Color(0xFF18181B);
+  static const _textPrimary   = Color(0xFFFAFAFA);
+  static const _textSecondary = Color(0xFFA1A1AA);
 
   @override
   Widget build(BuildContext context) {

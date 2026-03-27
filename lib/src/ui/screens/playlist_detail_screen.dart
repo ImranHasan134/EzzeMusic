@@ -11,13 +11,13 @@ class PlaylistDetailScreen extends StatelessWidget {
   const PlaylistDetailScreen({super.key, required this.playlistId});
 
   // ── Design tokens ────────────────────────────────────────────────
-  static const _bgDeep        = Color(0xFF0D0D14);
-  static const _bgGlass       = Color(0xFF1E1E2A);
-  static const _accent        = Color(0xFFFF6B35);
-  static const _textPrimary   = Color(0xFFF0F0F5);
-  static const _textSecondary = Color(0xFF8A8A9A);
-  static const _textMuted     = Color(0xFF4A4A5A);
-  static const _divider       = Color(0xFF252530);
+  static const _bgDeep        = Color(0xFF09090B);
+  static const _bgGlass       = Color(0xFF18181B);
+  static const _accent        = Color(0xFF6366F1);
+  static const _textPrimary   = Color(0xFFFAFAFA);
+  static const _textSecondary = Color(0xFFA1A1AA);
+  static const _textMuted     = Color(0xFF71717A);
+  static const _divider       = Color(0xFF27272A);
 
   @override
   Widget build(BuildContext context) {
@@ -40,7 +40,7 @@ class PlaylistDetailScreen extends StatelessWidget {
           gradient: RadialGradient(
             center: Alignment(0, -0.4),
             radius: 1.1,
-            colors: [Color(0xFF1A1020), _bgDeep],
+            colors: [Color(0xFF18181B), _bgDeep],
           ),
         ),
         child: SafeArea(
@@ -108,14 +108,14 @@ class PlaylistDetailScreen extends StatelessWidget {
         decoration: BoxDecoration(
           shape: BoxShape.circle,
           gradient: const LinearGradient(
-            colors: [Color(0xFFFF8C5A), _accent],
+            colors: [Color(0xFF818CF8), _accent],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           ),
           boxShadow: [
             BoxShadow(
-              color: _accent.withOpacity(0.45),
-              blurRadius: 20,
+              color: _accent.withOpacity(0.35),
+              blurRadius: 18,
               offset: const Offset(0, 6),
             ),
           ],
@@ -197,7 +197,7 @@ class PlaylistDetailScreen extends StatelessWidget {
                     horizontal: 24, vertical: 12),
                 decoration: BoxDecoration(
                   gradient: const LinearGradient(
-                    colors: [Color(0xFFFF8C5A), _accent],
+                    colors: [Color(0xFF818CF8), _accent],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   ),
@@ -303,11 +303,11 @@ class _DetailSongRow extends StatefulWidget {
 class _DetailSongRowState extends State<_DetailSongRow> {
   bool _pressed = false;
 
-  static const _bgGlass       = Color(0xFF1E1E2A);
-  static const _accent        = Color(0xFFFF6B35);
-  static const _textPrimary   = Color(0xFFF0F0F5);
-  static const _textSecondary = Color(0xFF8A8A9A);
-  static const _textMuted     = Color(0xFF4A4A5A);
+  static const _bgGlass       = Color(0xFF18181B);
+  static const _accent        = Color(0xFF6366F1);
+  static const _textPrimary   = Color(0xFFFAFAFA);
+  static const _textSecondary = Color(0xFFA1A1AA);
+  static const _textMuted     = Color(0xFF71717A);
 
   @override
   Widget build(BuildContext context) {
@@ -390,7 +390,7 @@ class _DetailSongRowState extends State<_DetailSongRow> {
                 decoration: const BoxDecoration(shape: BoxShape.circle),
                 child: Icon(
                   Icons.remove_circle_outline_rounded,
-                  color: Colors.redAccent.withOpacity(0.7),
+                  color: Colors.redAccent.withOpacity(0.8),
                   size: 20,
                 ),
               ),
@@ -409,12 +409,12 @@ class _AddSongsSheet extends StatelessWidget {
 
   const _AddSongsSheet({required this.playlistId});
 
-  static const _bgGlass       = Color(0xFF1E1E2A);
-  static const _accent        = Color(0xFFFF6B35);
-  static const _textPrimary   = Color(0xFFF0F0F5);
-  static const _textSecondary = Color(0xFF8A8A9A);
-  static const _textMuted     = Color(0xFF4A4A5A);
-  static const _divider       = Color(0xFF252530);
+  static const _bgGlass       = Color(0xFF18181B);
+  static const _accent        = Color(0xFF6366F1);
+  static const _textPrimary   = Color(0xFFFAFAFA);
+  static const _textSecondary = Color(0xFFA1A1AA);
+  static const _textMuted     = Color(0xFF71717A);
+  static const _divider       = Color(0xFF27272A);
 
   @override
   Widget build(BuildContext context) {
@@ -424,7 +424,7 @@ class _AddSongsSheet extends StatelessWidget {
     return Container(
       height: size.height * 0.85,
       decoration: const BoxDecoration(
-        color: Color(0xFF13131A),
+        color: Color(0xFF09090B),
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
         border: Border(top: BorderSide(color: _divider)),
       ),
@@ -542,12 +542,12 @@ class _AddSongRowState extends State<_AddSongRow> {
   bool _added  = false;
   bool _pressed = false;
 
-  static const _accent        = Color(0xFFFF6B35);
-  static const _textPrimary   = Color(0xFFF0F0F5);
-  static const _textSecondary = Color(0xFF8A8A9A);
-  static const _textMuted     = Color(0xFF4A4A5A);
-  static const _bgGlass       = Color(0xFF1E1E2A);
-  static const _divider       = Color(0xFF252530);
+  static const _accent        = Color(0xFF6366F1);
+  static const _textPrimary   = Color(0xFFFAFAFA);
+  static const _textSecondary = Color(0xFFA1A1AA);
+  static const _textMuted     = Color(0xFF71717A);
+  static const _bgGlass       = Color(0xFF18181B);
+  static const _divider       = Color(0xFF27272A);
 
   @override
   Widget build(BuildContext context) {
@@ -681,12 +681,12 @@ class _ThemedDialog extends StatelessWidget {
     required this.controller,
   });
 
-  static const _bgGlass       = Color(0xFF1E1E2A);
-  static const _accent        = Color(0xFFFF6B35);
-  static const _textPrimary   = Color(0xFFF0F0F5);
-  static const _textSecondary = Color(0xFF8A8A9A);
-  static const _textMuted     = Color(0xFF4A4A5A);
-  static const _divider       = Color(0xFF252530);
+  static const _bgGlass       = Color(0xFF18181B);
+  static const _accent        = Color(0xFF6366F1);
+  static const _textPrimary   = Color(0xFFFAFAFA);
+  static const _textSecondary = Color(0xFFA1A1AA);
+  static const _textMuted     = Color(0xFF71717A);
+  static const _divider       = Color(0xFF27272A);
 
   @override
   Widget build(BuildContext context) {
@@ -722,7 +722,7 @@ class _ThemedDialog extends StatelessWidget {
             const SizedBox(height: 20),
             Container(
               decoration: BoxDecoration(
-                color: const Color(0xFF13131A),
+                color: const Color(0xFF09090B),
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(color: _divider),
               ),
@@ -753,7 +753,7 @@ class _ThemedDialog extends StatelessWidget {
                     child: Container(
                       padding: const EdgeInsets.symmetric(vertical: 12),
                       decoration: BoxDecoration(
-                        color: const Color(0xFF13131A),
+                        color: const Color(0xFF09090B),
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(color: _divider),
                       ),
@@ -776,7 +776,7 @@ class _ThemedDialog extends StatelessWidget {
                       padding: const EdgeInsets.symmetric(vertical: 12),
                       decoration: BoxDecoration(
                         gradient: const LinearGradient(
-                          colors: [Color(0xFFFF8C5A), _accent],
+                          colors: [Color(0xFF818CF8), _accent],
                           begin: Alignment.topLeft,
                           end: Alignment.bottomRight,
                         ),
@@ -818,8 +818,8 @@ class _IconCircleButton extends StatelessWidget {
 
   const _IconCircleButton({required this.child, this.onTap});
 
-  static const _bgGlass = Color(0xFF1E1E2A);
-  static const _divider = Color(0xFF252530);
+  static const _bgGlass = Color(0xFF18181B);
+  static const _divider = Color(0xFF27272A);
 
   @override
   Widget build(BuildContext context) {

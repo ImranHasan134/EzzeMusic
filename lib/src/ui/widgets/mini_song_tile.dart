@@ -22,11 +22,10 @@ class _MiniSongTileState extends State<MiniSongTile> {
   bool _pressed = false;
 
   // ── Design tokens ────────────────────────────────────────────────
-  static const _bgGlass       = Color(0xFF1E1E2A);
-  static const _accent        = Color(0xFFFF6B35);
-  static const _textPrimary   = Color(0xFFF0F0F5);
-  static const _textSecondary = Color(0xFF8A8A9A);
-  static const _textMuted     = Color(0xFF4A4A5A);
+  static const _bgGlass       = Color(0xFF18181B);
+  static const _textPrimary   = Color(0xFFFAFAFA);
+  static const _textSecondary = Color(0xFFA1A1AA);
+  static const _textMuted     = Color(0xFF71717A);
 
   @override
   Widget build(BuildContext context) {
@@ -56,7 +55,7 @@ class _MiniSongTileState extends State<MiniSongTile> {
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 color: _bgGlass,
-                border: Border.all(color: const Color(0xFF252530)),
+                border: Border.all(color: const Color(0xFF27272A)),
               ),
               child: const Icon(
                 Icons.music_note_rounded,

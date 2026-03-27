@@ -23,13 +23,13 @@ class _SongsScreenState extends State<SongsScreen> {
   String? _error;
 
   // ── Design tokens ────────────────────────────────────────────────
-  static const _bgDeep    = Color(0xFF0D0D14);
-  static const _bgGlass   = Color(0xFF1E1E2A);
-  static const _accent    = Color(0xFFFF6B35);
-  static const _textPrimary   = Color(0xFFF0F0F5);
-  static const _textSecondary = Color(0xFF8A8A9A);
-  static const _textMuted     = Color(0xFF4A4A5A);
-  static const _divider       = Color(0xFF252530);
+  static const _bgDeep        = Color(0xFF09090B);
+  static const _bgGlass       = Color(0xFF18181B);
+  static const _accent        = Color(0xFF6366F1);
+  static const _textPrimary   = Color(0xFFFAFAFA);
+  static const _textSecondary = Color(0xFFA1A1AA);
+  static const _textMuted     = Color(0xFF71717A);
+  static const _divider       = Color(0xFF27272A);
 
   Future<void> _ensureLoaded(AppState app) async {
     if (app.songsCache.isNotEmpty) return;
@@ -68,7 +68,7 @@ class _SongsScreenState extends State<SongsScreen> {
             gradient: RadialGradient(
               center: Alignment(0, -0.4),
               radius: 1.1,
-              colors: [Color(0xFF1A1020), _bgDeep],
+              colors: [Color(0xFF18181B), _bgDeep],
             ),
           ),
           child: Column(
@@ -302,11 +302,11 @@ class _SongRow extends StatefulWidget {
 class _SongRowState extends State<_SongRow> {
   bool _pressed = false;
 
-  static const _bgGlass       = Color(0xFF1E1E2A);
-  static const _accent        = Color(0xFFFF6B35);
-  static const _textPrimary   = Color(0xFFF0F0F5);
-  static const _textSecondary = Color(0xFF8A8A9A);
-  static const _textMuted     = Color(0xFF4A4A5A);
+  static const _bgGlass       = Color(0xFF18181B);
+  static const _accent        = Color(0xFF6366F1);
+  static const _textPrimary   = Color(0xFFFAFAFA);
+  static const _textSecondary = Color(0xFFA1A1AA);
+  static const _textMuted     = Color(0xFF71717A);
 
   @override
   Widget build(BuildContext context) {
@@ -407,10 +407,10 @@ class _SortToggle extends StatelessWidget {
 
   const _SortToggle({required this.current, required this.onChanged});
 
-  static const _bgGlass   = Color(0xFF1E1E2A);
-  static const _accent    = Color(0xFFFF6B35);
-  static const _textSecondary = Color(0xFF8A8A9A);
-  static const _divider   = Color(0xFF252530);
+  static const _bgGlass   = Color(0xFF18181B);
+  static const _accent    = Color(0xFF6366F1);
+  static const _textSecondary = Color(0xFFA1A1AA);
+  static const _divider   = Color(0xFF27272A);
 
   @override
   Widget build(BuildContext context) {
@@ -467,8 +467,8 @@ class _IconCircleButton extends StatelessWidget {
 
   const _IconCircleButton({required this.child, this.onTap});
 
-  static const _bgGlass = Color(0xFF1E1E2A);
-  static const _divider = Color(0xFF252530);
+  static const _bgGlass = Color(0xFF18181B);
+  static const _divider = Color(0xFF27272A);
 
   @override
   Widget build(BuildContext context) {
@@ -499,7 +499,7 @@ class _AccentButton extends StatelessWidget {
     required this.onTap,
   });
 
-  static const _accent = Color(0xFFFF6B35);
+  static const _accent = Color(0xFF6366F1);
 
   @override
   Widget build(BuildContext context) {
@@ -510,7 +510,7 @@ class _AccentButton extends StatelessWidget {
         const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
         decoration: BoxDecoration(
           gradient: const LinearGradient(
-            colors: [Color(0xFFFF8C5A), _accent],
+            colors: [Color(0xFF818CF8), _accent],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           ),

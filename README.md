@@ -1,44 +1,45 @@
 # EzzeMusic 🎵
 
-A beautifully designed, feature-rich local music player built with Flutter. EzzeMusic offers a premium dark luxury listening experience with smooth animations, responsive layouts, and robust playback controls.
+A high-performance, premium local music player built with Flutter. EzzeMusic offers a "Luxury Dark" experience, now optimized with background processing (Isolates) and dynamic personalization to ensure a butter-smooth experience even on mid-range devices.
+
+---
+
+## 🚀 New & Optimized Features
+
+### ⚡ Performance & Stability
+- **Isolate-Powered Library**: Scanning and filtering thousands of songs is offloaded to a background thread (`compute`), preventing "Application Not Responding" (ANR) errors.
+- **Instant RAM Caching**: The library is scanned once at startup and cached. Toggling filters or searching is now instantaneous.
+- **Stability Patch**: Background blurs are optimized with lower GPU overhead and `RepaintBoundary` wrappers to maintain 60FPS during animations.
+
+### 🔍 Discovery
+- **Real-Time Search**: Instant filtering by song title or artist as you type.
+- **Pull-to-Refresh**: A smooth, native gesture to force a deep storage rescan for newly downloaded music.
+- **Smart Filtering**: Optional "Hide Short Clips" mode that strictly shows `.mp3` files longer than 30 seconds to keep your library clean.
+
+### 💿 Premium Now Playing UI
+- **Vinyl Spin Animation**: The artwork is now a perfect circle that slowly rotates like a physical record when music is playing.
+- **Dynamic Glow**: A soft "halo" effect behind the artwork that pulses gently in sync with the track.
+- **Perfect Circle Clipping**: Uses `ClipOval` and a Stack-based rim overlay to ensure perfectly smooth edges with no square "leakage."
+
+### 🎨 Personalization
+- **Dynamic Accent Engine**: Choose from a curated palette (Indigo, Rose, Gold, Emerald, etc.). The entire app’s highlights, glows, and icons update instantly.
+- **Luxury Glassmorphism**: Cards and navigation elements use a subtle border-stroke and semi-transparent "glass" background.
 
 ---
 
 ## Features
 
 ### 🎵 Playback
-- Play local audio files from device storage
-- Background playback with lock screen
-- Play/Pause, Next, Previous controls
-- Seek bar with real-time position tracking
-- Shuffle mode
-- Repeat modes — Off, Repeat All, Repeat One
-- Sleep timer (15 min, 30 min, 1 hour)
-- Restores last played queue on app restart
+- Background playback with lock screen integration.
+- Play/Pause, Next, Previous, Shuffle, and Repeat modes.
+- Seek bar with real-time position tracking.
+- Sleep timer (15 min, 30 min, 1 hour).
+- State restoration: Automatically remembers your last played song and queue.
 
-### 📋 Library
-- Scan device for all audio files
-- Import songs from Files app
-- Songs list with A–Z / Z–A sorting
-
-### 🎶 Playlists
-- Create, rename, and delete playlists
-- Add / remove songs from playlists
-- Dedicated playlist detail screen
-
-### ❤️ Favourites
-- Add currently playing song to Favourites
-- Remove song from Favourites with one tap
-- Favourites stored as a dedicated playlist
-
-### 🎨 Design
-- Dark luxury theme with warm orange accent (`#FF6B35`)
-- Smooth press-scale animations on all interactive elements
-- Pulsing artwork glow animation on Now Playing screen
-- Themed custom bottom navigation bar
-- Mini player bar with live progress indicator
-- Fully responsive — adapts to all screen sizes
-- Consistent design language across all screens
+### 🎶 Playlists & Favourites
+- Create, rename, and delete custom playlists.
+- One-tap "Favourite" system with a dedicated animated heart toggle.
+- Add/remove songs from playlists via a premium bottom-sheet interface.
 
 ---
 
@@ -46,14 +47,12 @@ A beautifully designed, feature-rich local music player built with Flutter. Ezze
 
 | Layer | Technology |
 |---|---|
-| Framework | Flutter |
-| Language | Dart |
-| Audio Playback | `just_audio` |
-| Background Audio | `just_audio_background` |
-| State Management | `provider` |
-| Persistence | `shared_preferences` |
-| File Picking | `file_picker` |
-| Utilities | `collection` |
+| **Framework** | Flutter (Latest Stable) |
+| **Concurrency** | `Isolates` (`compute`) for background filtering |
+| **Audio Engine** | `just_audio` & `just_audio_background` |
+| **State** | `provider` (Reactive Architecture) |
+| **Persistence** | `shared_preferences` & `json_serialization` |
+| **UI Polish** | `marquee`, `on_audio_query`, `Animations` |
 
 ---
 
@@ -82,7 +81,8 @@ lib/
         │   └── home_shell.dart
         └── widgets/
             ├── mini_player_bar.dart
-            └── mini_song_tile.dart
+            ├── mini_song_tile.dart
+            └── now_playing_thumbnail.dart
 ```
 
 ---
@@ -139,15 +139,15 @@ The following keys are required in `Info.plist`:
 
 ## Design System
 
-| Token | Value | Usage |
-|---|---|---|
-| `_bgDeep` | `#0D0D14` | Main background |
-| `_bgGlass` | `#1E1E2A` | Cards, sheets, nav bar |
-| `_accent` | `#FF6B35` | Primary accent, active states |
-| `_textPrimary` | `#F0F0F5` | Titles, primary text |
-| `_textSecondary` | `#8A8A9A` | Subtitles, descriptions |
-| `_textMuted` | `#4A4A5A` | Labels, inactive icons |
-| `_divider` | `#252530` | Borders, separators |
+| Token | Value      | Usage                     |
+|---|------------|---------------------------|
+| `_bgDeep` | `#09090B`  | Deepest background layer  |
+| `_bgGlass` | `#18181B`  | Themed containers & bars  |
+| `_accent` | `Dynamic`  | User-defined (Rose, Gold, Emerald, etc.) |
+| `_textPrimary` | `#F0F0F5`  | Titles, primary text      |
+| `_textSecondary` | `#8A8A9A`  | Subtitles, descriptions   |
+| `_textMuted` | `#4A4A5A`  | Labels, inactive icons    |
+| `_divider` | `#252530`  | Borders, separators       |
 
 ---
 
@@ -157,6 +157,6 @@ Pull requests are welcome. For major changes please open an issue first to discu
 
 ---
 
-## Developer
+## 👨🏻‍💻 Developer
 
-Built with ❤️ by **Imran Hasan**
+Built by **MD. Imran Hasan**

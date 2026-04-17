@@ -285,4 +285,18 @@ class AppState extends ChangeNotifier {
     player.dispose();
     super.dispose();
   }
+
+  Future<void> addSongsToFavourites(List<int> songIds) async {
+    final fav = await _ensureFavouritesPlaylist(); // Guarantees it exists
+    for (var id in songIds) {
+      final idx = _playlists.indexWhere((p) => p.id == fav.id);
+      if (idx != -1) {
+        _playlists[idx] = _playlists[idx].addSong(id);
+      }
+    }
+    await _savePlaylists();
+    notifyListeners();
+  }
+
+
 }

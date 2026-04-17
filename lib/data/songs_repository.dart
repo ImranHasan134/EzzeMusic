@@ -20,14 +20,12 @@ class SongsRepository {
   Future<bool> ensurePermission() async {
     if (!Platform.isAndroid) return false;
 
-    // Android 13+ uses READ_MEDIA_AUDIO, older uses READ_EXTERNAL_STORAGE.
     final statusAudio = await Permission.audio.status;
     if (statusAudio.isGranted) return true;
 
     final result = await Permission.audio.request();
     if (result.isGranted) return true;
 
-    // Some devices/ROMs still require storage permission for MediaStore.
     final storage = await Permission.storage.request();
     return storage.isGranted;
   }
@@ -56,27 +54,26 @@ class SongsRepository {
     );
 
     return songs
-        .where((s) => (s.uri ?? '').isNotEmpty)
+        .where((s) => s.data.isNotEmpty) // USE ACTUAL FILE PATH
         .map(
           (s) => Song(
-            id: s.id,
-            title: (s.title).trim(),
-            artist: (s.artist ?? 'Unknown artist').trim(),
-            album: (s.album ?? '').trim(),
-            albumId: s.albumId,
-            artistId: s.artistId,
-            genre: (s.genre ?? '').trim().isEmpty ? null : (s.genre ?? '').trim(),
-            track: s.track,
-            uri: s.uri!,
-            duration: s.duration == null ? null : Duration(milliseconds: s.duration!),
-            artworkUri:
-                s.albumId == null ? null : androidAlbumArtUri(s.albumId!),
-          ),
-        )
+        id: s.id,
+        title: (s.title).trim(),
+        artist: (s.artist ?? 'Unknown artist').trim(),
+        album: (s.album ?? '').trim(),
+        albumId: s.albumId,
+        artistId: s.artistId,
+        genre: (s.genre ?? '').trim().isEmpty ? null : (s.genre ?? '').trim(),
+        track: s.track,
+        // Convert the absolute path into a safe file:// URI for deletion
+        uri: Uri.file(s.data).toString(),
+        duration: s.duration == null ? null : Duration(milliseconds: s.duration!),
+        artworkUri: s.albumId == null ? null : androidAlbumArtUri(s.albumId!),
+      ),
+    )
         .toList();
   }
 
-  /// Best-effort: many players can resolve `content://media/.../albumart/<id>`.
   Uri androidAlbumArtUri(int albumId) {
     return Uri.parse('content://media/external/audio/albumart/$albumId');
   }
@@ -133,4 +130,3 @@ class SongsRepository {
     return updated;
   }
 }
-

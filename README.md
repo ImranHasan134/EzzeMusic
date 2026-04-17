@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="assets/icon/app_icon.jpg" alt="EzzeMusic Logo" width="150" height="150" style="border-radius: 20px;" />
+  <img src="assets/icon/app_icon.png" alt="EzzeMusic Logo" width="150" height="150" style="border-radius: 20px;" />
 
   <h1>🎵 EzzeMusic (A Ezze Softwares Product)</h1>
   <p><b>A premium, fluid, and beautifully crafted offline music player for Android & iOS.</b></p>
@@ -9,6 +9,8 @@
     <img src="https://img.shields.io/badge/Flutter-02569B?style=for-the-badge&logo=flutter&logoColor=white" />
     <img src="https://img.shields.io/badge/Dart-0175C2?style=for-the-badge&logo=dart&logoColor=white" />
     <img src="https://img.shields.io/badge/Platform-Android%20%7C%20iOS-lightgrey?style=for-the-badge" />
+    <img src="assets/icon/splash.gif" />
+    
   </p>
 </div>
 

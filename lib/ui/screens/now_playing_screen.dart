@@ -115,6 +115,7 @@ class _NowPlayingScreenState extends State<NowPlayingScreen>
                       const SizedBox(height: 40),
                       _buildControls(app, song, accent),
                       const SizedBox(height: 40),
+                      const SizedBox(height: 90),
                     ],
                   ),
                 ),

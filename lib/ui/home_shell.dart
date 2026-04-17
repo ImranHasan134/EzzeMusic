@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../state/app_state.dart';
-import 'screens/playlists_screen.dart';
+import '../ui/screens/playlists_screen.dart';
 import 'screens/songs_screen.dart';
-import 'screens/settings_screen.dart';
+import '../ui/screens/settings_screen.dart';
 import 'screens/now_playing_screen.dart';
-import 'widgets/mini_player_bar.dart';
+import '../ui/widgets/mini_player_bar.dart';
 
 class HomeShell extends StatefulWidget {
   const HomeShell({super.key});

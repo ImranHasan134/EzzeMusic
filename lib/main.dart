@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'dart:io';
 import 'package:just_audio_background/just_audio_background.dart';
 import 'package:provider/provider.dart';
-import 'src/state/app_state.dart';
-import 'src/ui/home_shell.dart';
+import 'state/app_state.dart';
+import 'ui/home_shell.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();

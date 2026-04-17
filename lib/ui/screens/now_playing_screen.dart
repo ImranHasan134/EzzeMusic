@@ -1,4 +1,5 @@
 import 'dart:ui';
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:provider/provider.dart';
@@ -17,13 +18,13 @@ class NowPlayingScreen extends StatefulWidget {
 }
 
 class _NowPlayingScreenState extends State<NowPlayingScreen>
-    with TickerProviderStateMixin { // Updated to TickerProvider for multiple controllers
-  double? _dragSeconds;
+    with TickerProviderStateMixin {
 
-  // ── Animations ──
+  // ── Animations & Subscriptions ──
   late AnimationController _pulseController;
   late Animation<double> _pulseAnimation;
   late AnimationController _rotationController;
+  StreamSubscription<PlayerState>? _playerStateSub;
 
   static const _bgDeep        = Color(0xFF09090B);
   static const _textPrimary   = Color(0xFFFAFAFA);
@@ -34,7 +35,6 @@ class _NowPlayingScreenState extends State<NowPlayingScreen>
   void initState() {
     super.initState();
 
-    // 1. Pulse Animation (The Glow)
     _pulseController = AnimationController(
       vsync: this,
       duration: const Duration(seconds: 3),
@@ -44,16 +44,26 @@ class _NowPlayingScreenState extends State<NowPlayingScreen>
       CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
     );
 
-    // 2. Rotation Animation (The Vinyl Spin)
-    // 20 seconds per full rotation for a smooth, realistic feel
     _rotationController = AnimationController(
       vsync: this,
       duration: const Duration(seconds: 20),
     );
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final app = context.read<AppState>();
+      _playerStateSub = app.player.playerStateStream.listen((state) {
+        if (state.playing) {
+          _rotationController.repeat();
+        } else {
+          _rotationController.stop();
+        }
+      });
+    });
   }
 
   @override
   void dispose() {
+    _playerStateSub?.cancel();
     _pulseController.dispose();
     _rotationController.dispose();
     super.dispose();
@@ -65,58 +75,52 @@ class _NowPlayingScreenState extends State<NowPlayingScreen>
     final app    = context.read<AppState>();
     final size   = MediaQuery.of(context).size;
 
-    return StreamBuilder<PlayerState>(
-      stream: app.player.playerStateStream,
-      builder: (context, snapState) {
-        // ── Rotation Logic ──
-        // This ensures the record spins ONLY when music is actually playing
-        final isPlaying = snapState.data?.playing ?? false;
-        if (isPlaying) {
-          _rotationController.repeat();
-        } else {
-          _rotationController.stop();
+    return StreamBuilder<Song?>(
+      // 🚨 THE MAGIC FIX: Only rebuild the screen if the actual Song ID changes!
+      // This stops play/pause/seek from flashing the artwork.
+      stream: app.player.currentSongStream.distinct((prev, next) => prev?.id == next?.id),
+      initialData: app.player.currentSong,
+      builder: (context, snapSong) {
+        final Song? song = snapSong.data;
+        if (song == null) {
+          return const Scaffold(
+              backgroundColor: _bgDeep,
+              body: Center(child: Text('No song', style: TextStyle(color: _textPrimary)))
+          );
         }
 
-        return StreamBuilder<Song?>(
-          stream: app.player.currentSongStream,
-          initialData: app.player.currentSong,
-          builder: (context, snapSong) {
-            final Song? song = snapSong.data;
-            if (song == null) return const Scaffold(backgroundColor: _bgDeep, body: Center(child: Text('No song')));
+        final artSize = (size.width * 0.78).clamp(200.0, 360.0);
+        final int parsedSongId = int.tryParse(song.id.toString()) ?? 0;
 
-            final artSize = (size.width * 0.78).clamp(200.0, 360.0);
-            final int parsedSongId = int.tryParse(song.id.toString()) ?? 0;
-
-            return Scaffold(
-              backgroundColor: _bgDeep,
-              extendBodyBehindAppBar: true,
-              appBar: _buildAppBar(context),
-              body: Stack(
-                fit: StackFit.expand,
-                children: [
-                  _buildBlurredBackground(parsedSongId),
-                  SafeArea(
-                    child: Padding(
-                      padding: EdgeInsets.symmetric(horizontal: size.width * 0.08),
-                      child: Column(
-                        children: [
-                          const SizedBox(height: 20),
-                          _buildRotatingArtwork(artSize, parsedSongId, accent),
-                          const Spacer(),
-                          _buildSongInfoRow(app, song, accent),
-                          const SizedBox(height: 35),
-                          _buildProgressSection(app, song),
-                          const SizedBox(height: 40),
-                          _buildControls(app, song, accent),
-                          const SizedBox(height: 40),
-                        ],
-                      ),
-                    ),
+        return Scaffold(
+          backgroundColor: _bgDeep,
+          extendBodyBehindAppBar: true,
+          appBar: _buildAppBar(context),
+          body: Stack(
+            fit: StackFit.expand,
+            children: [
+              _buildBlurredBackground(parsedSongId),
+              SafeArea(
+                child: Padding(
+                  padding: EdgeInsets.symmetric(horizontal: size.width * 0.08),
+                  child: Column(
+                    children: [
+                      const SizedBox(height: 20),
+                      _buildRotatingArtwork(artSize, parsedSongId, accent),
+                      const Spacer(),
+                      _buildSongInfoRow(app, song, accent),
+                      const SizedBox(height: 35),
+                      // Isolated Progress Section
+                      _ProgressSection(app: app, song: song),
+                      const SizedBox(height: 40),
+                      _buildControls(app, song, accent),
+                      const SizedBox(height: 40),
+                    ],
                   ),
-                ],
+                ),
               ),
-            );
-          },
+            ],
+          ),
         );
       },
     );
@@ -148,22 +152,23 @@ class _NowPlayingScreenState extends State<NowPlayingScreen>
             );
           },
           child: RotationTransition(
-            turns: _rotationController, // The secret sauce
+            turns: _rotationController,
             child: Stack(
               fit: StackFit.expand,
               children: [
                 ClipOval(
                   child: QueryArtworkWidget(
+                    key: ValueKey('main_art_$songId'), // Forces Flutter to cache the image
                     id: songId,
                     type: ArtworkType.AUDIO,
                     artworkHeight: size,
                     artworkWidth: size,
                     artworkFit: BoxFit.cover,
                     quality: 100,
+                    keepOldArtwork: true, // Prevents flashing during transitions
                     nullArtworkWidget: _buildPlaceholder(accent, size),
                   ),
                 ),
-                // The Rim Overlay for perfect edges
                 IgnorePointer(
                   child: Container(
                     decoration: BoxDecoration(
@@ -180,7 +185,7 @@ class _NowPlayingScreenState extends State<NowPlayingScreen>
     );
   }
 
-  // ── Other UI Components (Background, Info, Progress, Controls) ──
+  // ── Other UI Components ─────────────────────────────────────────
 
   Widget _buildBlurredBackground(int songId) {
     return RepaintBoundary(
@@ -188,9 +193,11 @@ class _NowPlayingScreenState extends State<NowPlayingScreen>
         fit: StackFit.expand,
         children: [
           QueryArtworkWidget(
+            key: ValueKey('bg_art_$songId'), // Forces Flutter to cache the background
             id: songId,
             type: ArtworkType.AUDIO,
             artworkFit: BoxFit.cover,
+            keepOldArtwork: true,
             nullArtworkWidget: Container(color: _bgDeep),
           ),
           BackdropFilter(
@@ -202,15 +209,12 @@ class _NowPlayingScreenState extends State<NowPlayingScreen>
     );
   }
 
-  // ... (Keep your existing _buildAppBar, _buildSongInfoRow, _buildProgressSection, _buildControls)
-  // Just make sure to include the helper classes below!
-
   Widget _buildPlaceholder(Color accent, double size) {
     return Container(
-      decoration: BoxDecoration(
+      decoration: const BoxDecoration(
         shape: BoxShape.circle,
         gradient: LinearGradient(
-          colors: [const Color(0xFF27272A), const Color(0xFF18181B)],
+          colors: [Color(0xFF27272A), Color(0xFF18181B)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
@@ -281,51 +285,6 @@ class _NowPlayingScreenState extends State<NowPlayingScreen>
     );
   }
 
-  Widget _buildProgressSection(AppState app, Song song) {
-    return StreamBuilder<Duration>(
-      stream: app.player.positionStream,
-      initialData: Duration.zero,
-      builder: (context, snapPos) {
-        final pos = snapPos.data ?? Duration.zero;
-        final total = song.duration ?? Duration.zero;
-        final totalSeconds = total.inSeconds == 0 ? 1.0 : total.inSeconds.toDouble();
-        final currentSeconds = _dragSeconds ?? pos.inSeconds.toDouble().clamp(0.0, totalSeconds);
-
-        return Column(
-          children: [
-            SliderTheme(
-              data: SliderThemeData(
-                trackHeight: 4,
-                activeTrackColor: _textPrimary,
-                inactiveTrackColor: Colors.white.withOpacity(0.1),
-                thumbColor: _textPrimary,
-                thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6),
-              ),
-              child: Slider(
-                min: 0, max: totalSeconds, value: currentSeconds,
-                onChanged: (v) => setState(() => _dragSeconds = v),
-                onChangeEnd: (v) async {
-                  setState(() => _dragSeconds = null);
-                  await app.player.seek(Duration(seconds: v.round()));
-                },
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 4),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(_formatDuration(Duration(seconds: currentSeconds.round())), style: const TextStyle(color: _textMuted, fontSize: 12)),
-                  Text(_formatDuration(total), style: const TextStyle(color: _textMuted, fontSize: 12)),
-                ],
-              ),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
   Widget _buildControls(AppState app, Song song, Color accent) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -360,6 +319,73 @@ class _NowPlayingScreenState extends State<NowPlayingScreen>
       ],
     );
   }
+}
+
+// ── ISOLATED PROGRESS SECTION ────────────────────────────────────────
+
+class _ProgressSection extends StatefulWidget {
+  final AppState app;
+  final Song song;
+
+  const _ProgressSection({required this.app, required this.song});
+
+  @override
+  State<_ProgressSection> createState() => _ProgressSectionState();
+}
+
+class _ProgressSectionState extends State<_ProgressSection> {
+  double? _dragSeconds;
+
+  static const _textPrimary = Color(0xFFFAFAFA);
+  static const _textMuted   = Color(0xFF71717A);
+
+  @override
+  Widget build(BuildContext context) {
+    return StreamBuilder<Duration>(
+      stream: widget.app.player.positionStream,
+      initialData: Duration.zero,
+      builder: (context, snapPos) {
+        final pos = snapPos.data ?? Duration.zero;
+        final total = widget.song.duration ?? Duration.zero;
+        final totalSeconds = total.inSeconds == 0 ? 1.0 : total.inSeconds.toDouble();
+        final currentSeconds = _dragSeconds ?? pos.inSeconds.toDouble().clamp(0.0, totalSeconds);
+
+        return Column(
+          children: [
+            SliderTheme(
+              data: SliderThemeData(
+                trackHeight: 4,
+                activeTrackColor: _textPrimary,
+                inactiveTrackColor: Colors.white.withOpacity(0.1),
+                thumbColor: _textPrimary,
+                thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6),
+              ),
+              child: Slider(
+                min: 0,
+                max: totalSeconds,
+                value: currentSeconds,
+                onChanged: (v) => setState(() => _dragSeconds = v),
+                onChangeEnd: (v) async {
+                  setState(() => _dragSeconds = null);
+                  await widget.app.player.seek(Duration(seconds: v.round()));
+                },
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 4),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(_formatDuration(Duration(seconds: currentSeconds.round())), style: const TextStyle(color: _textMuted, fontSize: 12)),
+                  Text(_formatDuration(total), style: const TextStyle(color: _textMuted, fontSize: 12)),
+                ],
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
 
   String _formatDuration(Duration d) {
     final m = d.inMinutes.toString().padLeft(2, '0');
@@ -368,11 +394,12 @@ class _NowPlayingScreenState extends State<NowPlayingScreen>
   }
 }
 
-// ── Shared UI Components (Keep these exactly as they are) ──────────
+// ── Shared UI Components ───────────────────────────────────────────
 
 class _PlayButton extends StatelessWidget {
   final bool isPlaying; final VoidCallback onTap; final Color accent;
   const _PlayButton({required this.isPlaying, required this.onTap, required this.accent});
+
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
@@ -390,18 +417,22 @@ class _PlayButton extends StatelessWidget {
   }
 }
 
-
-
 class _TransportButton extends StatelessWidget {
   final IconData icon; final double size; final VoidCallback onTap;
   const _TransportButton({required this.icon, required this.size, required this.onTap});
+
   @override
-  Widget build(BuildContext context) { return IconButton(onPressed: onTap, icon: Icon(icon, color: Colors.white, size: size)); }
+  Widget build(BuildContext context) {
+    return IconButton(onPressed: onTap, icon: Icon(icon, color: Colors.white, size: size));
+  }
 }
 
 class _SecondaryButton extends StatelessWidget {
   final IconData icon; final bool isActive; final VoidCallback onTap; final Color accent;
   const _SecondaryButton({required this.icon, required this.isActive, required this.onTap, required this.accent});
+
   @override
-  Widget build(BuildContext context) { return IconButton(onPressed: onTap, icon: Icon(icon, color: isActive ? accent : const Color(0xFF71717A), size: 26)); }
+  Widget build(BuildContext context) {
+    return IconButton(onPressed: onTap, icon: Icon(icon, color: isActive ? accent : const Color(0xFF71717A), size: 26));
+  }
 }

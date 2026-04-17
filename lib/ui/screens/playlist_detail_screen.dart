@@ -3,6 +3,8 @@ import 'package:provider/provider.dart';
 
 import '../../models/song.dart';
 import '../../state/app_state.dart';
+import '../widgets/mini_player_bar.dart';
+import 'now_playing_screen.dart';
 
 class PlaylistDetailScreen extends StatelessWidget {
   final String playlistId;
@@ -19,7 +21,6 @@ class PlaylistDetailScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // 1. Link to Dynamic Accent
     final accent   = Theme.of(context).colorScheme.primary;
     final app      = context.watch<AppState>();
     final playlist = app.playlists.firstWhere((p) => p.id == playlistId);
@@ -34,7 +35,6 @@ class PlaylistDetailScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: _bgDeep,
       appBar: _buildAppBar(context, playlist),
-      // FAB now uses Dynamic Accent
       floatingActionButton: _buildFAB(context, accent),
       body: Container(
         decoration: const BoxDecoration(
@@ -50,111 +50,79 @@ class PlaylistDetailScreen extends StatelessWidget {
               : _buildSongList(context, app, songs, size),
         ),
       ),
+      bottomNavigationBar: MiniPlayerBar(
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const NowPlayingScreen()),
+          );
+        },
+      ),
     );
   }
 
-  // ── AppBar ───────────────────────────────────────────────────────
   PreferredSizeWidget _buildAppBar(BuildContext context, playlist) {
     return AppBar(
       backgroundColor: Colors.transparent,
       elevation: 0,
       centerTitle: true,
       leading: IconButton(
-        icon: const Icon(Icons.keyboard_arrow_down_rounded,
-            color: _textSecondary, size: 28),
+        icon: const Icon(Icons.keyboard_arrow_left_rounded, color: _textSecondary, size: 28),
         onPressed: () => Navigator.maybePop(context),
       ),
       title: Column(
         children: [
-          const Text(
-            'PLAYLIST',
-            style: TextStyle(
-              color: _textMuted,
-              fontSize: 10,
-              fontWeight: FontWeight.w700,
-              letterSpacing: 3,
-            ),
-          ),
+          const Text('PLAYLIST', style: TextStyle(color: _textMuted, fontSize: 10, fontWeight: FontWeight.w700, letterSpacing: 3)),
           const SizedBox(height: 2),
-          Text(
-            playlist.name,
-            style: const TextStyle(
-              color: _textPrimary,
-              fontSize: 15,
-              fontWeight: FontWeight.w600,
-              letterSpacing: 0.2,
-            ),
-          ),
+          Text(playlist.name, style: const TextStyle(color: _textPrimary, fontSize: 15, fontWeight: FontWeight.w600, letterSpacing: 0.2)),
         ],
       ),
       actions: [
         _IconCircleButton(
           onTap: () => _renameDialog(context, playlist),
-          child: const Icon(Icons.drive_file_rename_outline_rounded,
-              color: _textSecondary, size: 17),
+          child: const Icon(Icons.drive_file_rename_outline_rounded, color: _textSecondary, size: 17),
         ),
         const SizedBox(width: 12),
       ],
     );
   }
 
-  // ── FAB (Now Dynamic) ───────────────────────────────────────────
   Widget _buildFAB(BuildContext context, Color accent) {
     return GestureDetector(
       onTap: () => _openAddSongs(context),
       child: Container(
-        width: 54,
-        height: 54,
+        width: 54, height: 54,
         decoration: BoxDecoration(
           shape: BoxShape.circle,
-          gradient: LinearGradient(
-            colors: [accent.withOpacity(0.8), accent],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: accent.withOpacity(0.35),
-              blurRadius: 18,
-              offset: const Offset(0, 6),
-            ),
-          ],
+          gradient: LinearGradient(colors: [accent.withOpacity(0.8), accent], begin: Alignment.topLeft, end: Alignment.bottomRight),
+          boxShadow: [BoxShadow(color: accent.withOpacity(0.35), blurRadius: 18, offset: const Offset(0, 6))],
         ),
         child: const Icon(Icons.add_rounded, color: Colors.white, size: 26),
       ),
     );
   }
 
-  // ── Song list ────────────────────────────────────────────────────
-  Widget _buildSongList(BuildContext context, AppState app,
-      List<Song> songs, Size size) {
+  Widget _buildSongList(BuildContext context, AppState app, List<Song> songs, Size size) {
     return ListView.separated(
-      padding: EdgeInsets.fromLTRB(
-          size.width * 0.04, 8, size.width * 0.04, 120),
+      padding: EdgeInsets.fromLTRB(size.width * 0.04, 8, size.width * 0.04, 120),
       itemCount: songs.length,
-      separatorBuilder: (_, __) =>
-      const Divider(height: 1, color: _divider, indent: 64),
+      separatorBuilder: (_, __) => const Divider(height: 1, color: _divider, indent: 64),
       itemBuilder: (context, index) {
         final s = songs[index];
         return _DetailSongRow(
-          song: s,
-          index: index,
+          song: s, index: index,
           onPlay: () async {
             await app.player.setQueue(songs, startIndex: index);
             await app.player.play();
             if (!context.mounted) return;
             _showSnack(context, 'Now Playing: ${s.title}');
           },
-          onRemove: () => context.read<AppState>().removeSongFromPlaylist(
-            playlistId: playlistId,
-            songId: s.id,
-          ),
+          onRemove: () => context.read<AppState>().removeSongFromPlaylist(playlistId: playlistId, songId: s.id),
         );
       },
     );
   }
 
-  // ── Empty state (Now Dynamic) ─────────────────────────────────────
   Widget _buildEmptyState(BuildContext context, Color accent) {
     return Center(
       child: Padding(
@@ -163,67 +131,29 @@ class PlaylistDetailScreen extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             Container(
-              width: 80,
-              height: 80,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: _bgGlass,
-                border: Border.all(color: _divider),
-              ),
-              child: const Icon(Icons.library_music_rounded,
-                  size: 36, color: _textMuted),
+              width: 80, height: 80,
+              decoration: BoxDecoration(shape: BoxShape.circle, color: _bgGlass, border: Border.all(color: _divider)),
+              child: const Icon(Icons.library_music_rounded, size: 36, color: _textMuted),
             ),
             const SizedBox(height: 20),
-            const Text(
-              'No songs yet',
-              style: TextStyle(
-                color: _textPrimary,
-                fontSize: 17,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
+            const Text('No songs yet', style: TextStyle(color: _textPrimary, fontSize: 17, fontWeight: FontWeight.w600)),
             const SizedBox(height: 8),
-            const Text(
-              'Add songs to this playlist to get started.',
-              style: TextStyle(
-                  color: _textSecondary, fontSize: 13, height: 1.5),
-              textAlign: TextAlign.center,
-            ),
+            const Text('Add songs to this playlist to get started.', style: TextStyle(color: _textSecondary, fontSize: 13, height: 1.5), textAlign: TextAlign.center),
             const SizedBox(height: 24),
             GestureDetector(
               onTap: () => _openAddSongs(context),
               child: Container(
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 24, vertical: 12),
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                 decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [accent.withOpacity(0.8), accent],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
+                  gradient: LinearGradient(colors: [accent.withOpacity(0.8), accent], begin: Alignment.topLeft, end: Alignment.bottomRight),
                   borderRadius: BorderRadius.circular(50),
-                  boxShadow: [
-                    BoxShadow(
-                      color: accent.withOpacity(0.35),
-                      blurRadius: 16,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
+                  boxShadow: [BoxShadow(color: accent.withOpacity(0.35), blurRadius: 16, offset: const Offset(0, 4))],
                 ),
                 child: const Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(Icons.add_rounded, color: Colors.white, size: 18),
-                    SizedBox(width: 8),
-                    Text(
-                      'Add Songs',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                        letterSpacing: 0.3,
-                      ),
-                    ),
+                    Icon(Icons.add_rounded, color: Colors.white, size: 18), SizedBox(width: 8),
+                    Text('Add Songs', style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w600, letterSpacing: 0.3)),
                   ],
                 ),
               ),
@@ -234,7 +164,6 @@ class PlaylistDetailScreen extends StatelessWidget {
     );
   }
 
-  // ── Rename dialog (Now Dynamic) ──────────────────────────────────
   Future<void> _renameDialog(BuildContext context, playlist) async {
     final ctrl = TextEditingController(text: playlist.name);
     final accent = Theme.of(context).colorScheme.primary;
@@ -242,20 +171,13 @@ class PlaylistDetailScreen extends StatelessWidget {
     final ok = await showDialog<bool>(
       context: context,
       barrierColor: Colors.black.withOpacity(0.7),
-      builder: (_) => _ThemedDialog(
-        title: 'Rename Playlist',
-        hint: 'Playlist name',
-        confirmLabel: 'Save',
-        controller: ctrl,
-        accentColor: accent,
-      ),
+      builder: (_) => _ThemedDialog(title: 'Rename Playlist', hint: 'Playlist name', confirmLabel: 'Save', controller: ctrl, accentColor: accent),
     );
     if (ok != true) return;
     if (!context.mounted) return;
     await context.read<AppState>().renamePlaylist(playlistId, ctrl.text);
   }
 
-  // ── Add songs bottom sheet ───────────────────────────────────────
   Future<void> _openAddSongs(BuildContext context) async {
     final app = context.read<AppState>();
     if (app.songsCache.isEmpty) await app.refreshLibrarySongs();
@@ -277,14 +199,13 @@ class PlaylistDetailScreen extends StatelessWidget {
         duration: const Duration(seconds: 2),
         backgroundColor: _bgGlass,
         behavior: SnackBarBehavior.floating,
-        shape:
-        RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),
     );
   }
 }
 
-// ── Detail Song Row (Dynamic Accent) ─────────────────────────────────────────
+// ── Detail Song Row ─────────────────────────────────────────────────────────
 
 class _DetailSongRow extends StatefulWidget {
   final Song song;
@@ -292,12 +213,7 @@ class _DetailSongRow extends StatefulWidget {
   final VoidCallback onPlay;
   final VoidCallback onRemove;
 
-  const _DetailSongRow({
-    required this.song,
-    required this.index,
-    required this.onPlay,
-    required this.onRemove,
-  });
+  const _DetailSongRow({required this.song, required this.index, required this.onPlay, required this.onRemove});
 
   @override
   State<_DetailSongRow> createState() => _DetailSongRowState();
@@ -315,10 +231,7 @@ class _DetailSongRowState extends State<_DetailSongRow> {
   Widget build(BuildContext context) {
     return GestureDetector(
       onTapDown: (_) => setState(() => _pressed = true),
-      onTapUp: (_) {
-        setState(() => _pressed = false);
-        widget.onPlay();
-      },
+      onTapUp: (_) { setState(() => _pressed = false); widget.onPlay(); },
       onTapCancel: () => setState(() => _pressed = false),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 110),
@@ -326,50 +239,24 @@ class _DetailSongRowState extends State<_DetailSongRow> {
         transform: Matrix4.identity()..scale(_pressed ? 0.98 : 1.0),
         transformAlignment: Alignment.center,
         padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 10),
-        decoration: BoxDecoration(
-          color: _pressed ? _bgGlass.withOpacity(0.6) : Colors.transparent,
-          borderRadius: BorderRadius.circular(12),
-        ),
+        decoration: BoxDecoration(color: _pressed ? _bgGlass.withOpacity(0.6) : Colors.transparent, borderRadius: BorderRadius.circular(12)),
         child: Row(
           children: [
-            SizedBox(
-              width: 36,
-              child: Text(
-                '${widget.index + 1}'.padLeft(2, '0'),
-                style: const TextStyle(
-                  color: _textMuted,
-                  fontSize: 11,
-                  fontWeight: FontWeight.w600,
-                  letterSpacing: 0.5,
-                ),
-                textAlign: TextAlign.center,
-              ),
-            ),
+            SizedBox(width: 36, child: Text('${widget.index + 1}'.padLeft(2, '0'), style: const TextStyle(color: _textMuted, fontSize: 11, fontWeight: FontWeight.w600, letterSpacing: 0.5), textAlign: TextAlign.center)),
             const SizedBox(width: 10),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    widget.song.title.isEmpty ? 'Unknown Title' : widget.song.title,
-                    style: const TextStyle(color: _textPrimary, fontSize: 14, fontWeight: FontWeight.w600),
-                    maxLines: 1, overflow: TextOverflow.ellipsis,
-                  ),
+                  Text(widget.song.title.isEmpty ? 'Unknown Title' : widget.song.title, style: const TextStyle(color: _textPrimary, fontSize: 14, fontWeight: FontWeight.w600), maxLines: 1, overflow: TextOverflow.ellipsis),
                   const SizedBox(height: 3),
-                  Text(
-                    widget.song.artist.isEmpty ? 'Unknown Artist' : widget.song.artist,
-                    style: const TextStyle(color: _textSecondary, fontSize: 12),
-                    maxLines: 1, overflow: TextOverflow.ellipsis,
-                  ),
+                  Text(widget.song.artist.isEmpty ? 'Unknown Artist' : widget.song.artist, style: const TextStyle(color: _textSecondary, fontSize: 12), maxLines: 1, overflow: TextOverflow.ellipsis),
                 ],
               ),
             ),
             GestureDetector(
               onTap: widget.onRemove,
-              child: Container(
-                width: 34, height: 34,
-                child: Icon(Icons.remove_circle_outline_rounded, color: Colors.redAccent.withOpacity(0.8), size: 20),
-              ),
+              child: SizedBox(width: 34, height: 34, child: Icon(Icons.remove_circle_outline_rounded, color: Colors.redAccent.withOpacity(0.8), size: 20)),
             ),
           ],
         ),
@@ -378,7 +265,7 @@ class _DetailSongRowState extends State<_DetailSongRow> {
   }
 }
 
-// ── Add Songs Bottom Sheet (Dynamic Accent) ──────────────────────────────────
+// ── Add Songs Bottom Sheet ───────────────────────────────────────────────────
 
 class _AddSongsSheet extends StatelessWidget {
   final String playlistId;
@@ -392,8 +279,13 @@ class _AddSongsSheet extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final accent = Theme.of(context).colorScheme.primary;
-    final songs  = context.watch<AppState>().songsCache;
+    final app = context.watch<AppState>();
+    final songs  = app.songsCache;
     final size   = MediaQuery.of(context).size;
+
+    // Fetch the current playlist to see which songs are already in it
+    final currentPlaylist = app.playlists.firstWhere((p) => p.id == playlistId);
+    final Set<int> existingSongIds = currentPlaylist.songIds.toSet();
 
     return Container(
       height: size.height * 0.85,
@@ -437,8 +329,11 @@ class _AddSongsSheet extends StatelessWidget {
               separatorBuilder: (_, __) => const Divider(height: 1, color: _divider, indent: 60),
               itemBuilder: (context, index) {
                 final s = songs[index];
+                final isAlreadyAdded = existingSongIds.contains(s.id); // Check if already added
+
                 return _AddSongRow(
                   song: s, index: index, accentColor: accent,
+                  isInitiallyAdded: isAlreadyAdded, // Pass state down to the row
                   onAdd: () => context.read<AppState>().addSongToPlaylist(playlistId: playlistId, songId: s.id),
                 );
               },
@@ -450,22 +345,29 @@ class _AddSongsSheet extends StatelessWidget {
   }
 }
 
-// ── Add Song Row (Dynamic Accent) ──────────────────────────────────────────────
+// ── Add Song Row ─────────────────────────────────────────────────────────────
 
 class _AddSongRow extends StatefulWidget {
   final Song song;
   final int index;
   final Color accentColor;
+  final bool isInitiallyAdded;
   final VoidCallback onAdd;
 
-  const _AddSongRow({required this.song, required this.index, required this.accentColor, required this.onAdd});
+  const _AddSongRow({
+    required this.song,
+    required this.index,
+    required this.accentColor,
+    required this.isInitiallyAdded,
+    required this.onAdd
+  });
 
   @override
   State<_AddSongRow> createState() => _AddSongRowState();
 }
 
 class _AddSongRowState extends State<_AddSongRow> {
-  bool _added  = false;
+  late bool _added;
   bool _pressed = false;
 
   static const _textPrimary   = Color(0xFFFAFAFA);
@@ -473,6 +375,21 @@ class _AddSongRowState extends State<_AddSongRow> {
   static const _textMuted     = Color(0xFF71717A);
   static const _bgGlass       = Color(0xFF18181B);
   static const _divider       = Color(0xFF27272A);
+
+  @override
+  void initState() {
+    super.initState();
+    _added = widget.isInitiallyAdded;
+  }
+
+  @override
+  void didUpdateWidget(covariant _AddSongRow oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // Keep local state in sync if parent rebuilds
+    if (widget.isInitiallyAdded != oldWidget.isInitiallyAdded) {
+      _added = widget.isInitiallyAdded;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -509,7 +426,10 @@ class _AddSongRowState extends State<_AddSongRow> {
               ),
             ),
             GestureDetector(
-              onTap: _added ? null : () { widget.onAdd(); setState(() => _added = true); },
+              onTap: _added ? null : () {
+                widget.onAdd();
+                setState(() => _added = true); // Instant UI feedback
+              },
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 200),
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
@@ -535,7 +455,7 @@ class _AddSongRowState extends State<_AddSongRow> {
   }
 }
 
-// ── Themed Dialog (Dynamic Accent) ────────────────────────────────────────────
+// ── Themed Dialog ────────────────────────────────────────────────────────────
 
 class _ThemedDialog extends StatelessWidget {
   final String title;

@@ -28,7 +28,16 @@ class SettingsScreen extends StatelessWidget {
       child: ListView(
         padding: EdgeInsets.fromLTRB(size.width * 0.06, 20, size.width * 0.06, 120),
         children: [
-          const Text('SETTINGS', style: TextStyle(color: _textMuted, fontSize: 10, fontWeight: FontWeight.w700, letterSpacing: 3)),
+          Text(
+              'SETTINGS',
+              style: TextStyle(
+                // Changed from _textMuted to dynamic accent with opacity
+                  color: accent.withOpacity(0.7),
+                  fontSize: 10,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 3
+              )
+          ),
           const Text('Preferences', style: TextStyle(color: _textPrimary, fontSize: 22, fontWeight: FontWeight.w700)),
           const SizedBox(height: 24),
 
@@ -61,9 +70,7 @@ class SettingsScreen extends StatelessWidget {
           const _SectionHeader(title: 'Advanced'),
           _SettingsCard(children: [
             _SettingsTile(icon: Icons.security_rounded, title: 'App Permissions', subtitle: 'Manage storage access', accentColor: accent, onTap: () => openAppSettings()),
-            const Divider(height: 1, color: _divider, indent: 52),
-            _SettingsTile(icon: Icons.info_outline_rounded, title: 'Ezze Music v1.0.0', subtitle: 'Premium Audio Player', accentColor: accent, onTap: () {}),
-          ]),
+            ]),
         ],
       ),
     );

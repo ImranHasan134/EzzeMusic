@@ -226,18 +226,22 @@ class _NowPlayingScreenState extends State<NowPlayingScreen>
   }
 
   PreferredSizeWidget _buildAppBar(BuildContext context) {
+    // Extract the dynamic accent color from the current theme
+    final accent = Theme.of(context).colorScheme.primary;
+
     return AppBar(
       backgroundColor: Colors.transparent,
       elevation: 0,
       centerTitle: true,
-      leading: IconButton(
-        icon: const Icon(Icons.keyboard_arrow_down_rounded, color: _textSecondary, size: 32),
-        onPressed: () => Navigator.maybePop(context),
+      title: Text(
+        'NOW PLAYING',
+        style: TextStyle(
+          color: accent.withOpacity(0.7),
+          fontSize: 13,
+          fontWeight: FontWeight.bold,
+          letterSpacing: 4,
+        ),
       ),
-      title: const Text('NOW PLAYING', style: TextStyle(color: _textMuted, fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 4)),
-      actions: [
-        IconButton(icon: const Icon(Icons.more_vert_rounded, color: _textSecondary), onPressed: () {}),
-      ],
     );
   }
 
@@ -341,6 +345,9 @@ class _ProgressSectionState extends State<_ProgressSection> {
 
   @override
   Widget build(BuildContext context) {
+    // 1. Grab the dynamic accent color from the theme
+    final accent = Theme.of(context).colorScheme.primary;
+
     return StreamBuilder<Duration>(
       stream: widget.app.player.positionStream,
       initialData: Duration.zero,
@@ -355,10 +362,16 @@ class _ProgressSectionState extends State<_ProgressSection> {
             SliderTheme(
               data: SliderThemeData(
                 trackHeight: 4,
-                activeTrackColor: _textPrimary,
+                // 2. Track is now the dynamic accent color
+                activeTrackColor: accent,
                 inactiveTrackColor: Colors.white.withOpacity(0.1),
-                thumbColor: _textPrimary,
-                thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6),
+                // 3. The "Seekbar Circle" (Thumb) is now strictly White
+                thumbColor: Colors.white,
+                overlayColor: accent.withOpacity(0.12),
+                thumbShape: const RoundSliderThumbShape(
+                  enabledThumbRadius: 6,
+                  elevation: 4, // Added slight elevation to make the white thumb pop
+                ),
               ),
               child: Slider(
                 min: 0,

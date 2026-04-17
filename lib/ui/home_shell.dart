@@ -15,7 +15,10 @@ class HomeShell extends StatefulWidget {
 }
 
 class _HomeShellState extends State<HomeShell> {
-  int _index = 1;
+  // ── Define your Home Tab Index ──
+  // 0 = Player, 1 = Songs, 2 = Playlists, 3 = Settings
+  final int _homeIndex = 1;
+  late int _index;
 
   static const _bgDeep = Color(0xFF09090B);
 
@@ -34,64 +37,81 @@ class _HomeShellState extends State<HomeShell> {
   ];
 
   @override
+  void initState() {
+    super.initState();
+    _index = _homeIndex; // Start the app on the Home tab
+  }
+
+  @override
   Widget build(BuildContext context) {
     final accent = Theme.of(context).colorScheme.primary;
     final bottomPadding = MediaQuery.of(context).padding.bottom;
 
-    return Scaffold(
-      backgroundColor: _bgDeep,
-      extendBody: true,
-      body: Stack(
-        children: [
-          // ── 1. The Main Content (Now Static for stability) ──
-          SafeArea(
-            bottom: false,
-            child: IndexedStack(
-              index: _index,
-              children: _tabs,
-            ),
-          ),
+    return PopScope(
+      // ── SYSTEM BACK SWIPE INTERCEPTION ──
+      // Allow the app to exit ONLY if we are already on the Home tab
+      canPop: _index == _homeIndex,
+      onPopInvoked: (didPop) {
+        // If didPop is true, the app is exiting. We do nothing.
+        if (didPop) return;
 
-          // ── 2. The Floating Mini Player (Animated instead of Conditional) ──
-          Positioned(
-            left: 16,
-            right: 16,
-            bottom: 95 + (bottomPadding > 0 ? bottomPadding : 12),
-            child: AnimatedOpacity(
-              // Fades out instead of disappearing, keeping the layout stable
-              opacity: _index == 0 ? 0.0 : 1.0,
-              duration: const Duration(milliseconds: 300),
-              child: IgnorePointer(
-                ignoring: _index == 0,
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(20),
-                  child: MiniPlayerBar(
-                    onTap: () => setState(() => _index = 0),
+        // Otherwise, route the user back to the Home tab instead of exiting
+        setState(() => _index = _homeIndex);
+      },
+      child: Scaffold(
+        backgroundColor: _bgDeep,
+        extendBody: true,
+        body: Stack(
+          children: [
+            // ── 1. The Main Content ──
+            SafeArea(
+              bottom: false,
+              child: IndexedStack(
+                index: _index,
+                children: _tabs,
+              ),
+            ),
+
+            // ── 2. The Floating Mini Player ──
+            Positioned(
+              left: 16,
+              right: 16,
+              bottom: 95 + (bottomPadding > 0 ? bottomPadding : 12),
+              child: AnimatedOpacity(
+                opacity: _index == 0 ? 0.0 : 1.0,
+                duration: const Duration(milliseconds: 300),
+                child: IgnorePointer(
+                  ignoring: _index == 0,
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(20),
+                    child: MiniPlayerBar(
+                      onTap: () => setState(() => _index = 0),
+                    ),
                   ),
                 ),
               ),
             ),
-          ),
 
-          // ── 3. The Sliding Floating Navigation Bar ──
-          Positioned(
-            left: 16,
-            right: 16,
-            bottom: bottomPadding > 0 ? bottomPadding : 20,
-            child: _ThemedNavBar(
-              selectedIndex: _index,
-              destinations: _destinations,
-              accentColor: accent,
-              onTap: (i) => setState(() => _index = i),
+            // ── 3. The Sliding Floating Navigation Bar ──
+            Positioned(
+              left: 16,
+              right: 16,
+              bottom: bottomPadding > 0 ? bottomPadding : 20,
+              child: _ThemedNavBar(
+                selectedIndex: _index,
+                destinations: _destinations,
+                accentColor: accent,
+                onTap: (i) => setState(() => _index = i),
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
 }
 
-// ── Themed Sliding Nav Bar (Logic remains the same) ──────────────────────────
+// ── Themed Sliding Floating Nav Bar ───────────────────────────────────────────
 
 class _ThemedNavBar extends StatelessWidget {
   final int selectedIndex;
@@ -169,7 +189,7 @@ class _NavItem extends StatelessWidget {
       onTap: onTap,
       behavior: HitTestBehavior.opaque,
       child: AnimatedContainer(
-        duration: const Duration(milliseconds: 300),
+        duration: const Duration(milliseconds: 400),
         curve: Curves.easeInOutCubic,
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
         decoration: BoxDecoration(
@@ -185,7 +205,7 @@ class _NavItem extends StatelessWidget {
               size: 24,
             ),
             AnimatedSize(
-              duration: const Duration(milliseconds: 300),
+              duration: const Duration(milliseconds: 400),
               curve: Curves.easeInOutCubic,
               child: isSelected
                   ? Padding(

@@ -4,6 +4,7 @@ import 'package:just_audio_background/just_audio_background.dart';
 import 'package:provider/provider.dart';
 import 'state/app_state.dart';
 import 'ui/home_shell.dart';
+import 'ui/screens/splash_screen.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -100,7 +101,7 @@ class EzzeMusic extends StatelessWidget {
             ),
           ),
 
-          home: const HomeShell(),
+          home: const SplashScreen(),
         );
       },
     );

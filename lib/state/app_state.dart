@@ -32,7 +32,7 @@ class AppState extends ChangeNotifier {
   ThemeMode _themeMode = ThemeMode.system;
   ThemeMode get themeMode => _themeMode;
 
-  Color _accentColor = const Color(0xFF4A087A);
+  Color _accentColor = const Color(0xFF1854E3);
   Color get accentColor => _accentColor;
 
   // 1. SET TO FALSE BY DEFAULT

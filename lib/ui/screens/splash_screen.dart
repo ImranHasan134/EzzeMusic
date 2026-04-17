@@ -112,25 +112,39 @@ class _SplashScreenState extends State<SplashScreen> {
                     duration: const Duration(milliseconds: 800),
                     curve: Curves.easeOutCubic,
                     offset: _showBranding ? Offset.zero : const Offset(0, 0.5),
-                    child: const Column(
+                    // Removed 'const' from Column and added it to the individual Text/SizedBox widgets
+                    child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Text(
+                        const Text(
                           'A',
                           style: TextStyle(color: Colors.white54, fontSize: 12, letterSpacing: 2),
                         ),
-                        SizedBox(height: 6),
-                        Text(
-                          'Ezze Softwares',
-                          style: TextStyle(
-                            color: Color(0xFF4A087A),
-                            fontSize: 24,
-                            fontWeight: FontWeight.w900,
-                            letterSpacing: 1.2,
+                        const SizedBox(height: 6),
+                        ShaderMask(
+                          blendMode: BlendMode.srcIn,
+                          shaderCallback: (bounds) => const LinearGradient(
+                            colors: [
+                              Color(0xFF00A3FF), // Bright Blue from the top-left of the icon
+                              Color(0xFF1854E3), // Deep Blue (Your original color)
+                              Color(0xFFB100FF), // Rich Purple/Magenta from the bottom-right
+                            ],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ).createShader(bounds),
+                          child: const Text(
+                            'Ezze Softwares',
+                            style: TextStyle(
+                              // The color must be white for the gradient to paint over it properly
+                              color: Colors.white,
+                              fontSize: 24,
+                              fontWeight: FontWeight.w900,
+                              letterSpacing: 1.2,
+                            ),
                           ),
                         ),
-                        SizedBox(height: 6),
-                        Text(
+                        const SizedBox(height: 6),
+                        const Text(
                           'PRODUCT',
                           style: TextStyle(color: Colors.white54, fontSize: 10, letterSpacing: 5, fontWeight: FontWeight.bold),
                         ),

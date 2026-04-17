@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:provider/provider.dart';
+import 'package:on_audio_query/on_audio_query.dart'; // ADDED FOR ARTWORK
 
 import '../../state/app_state.dart';
 
@@ -28,6 +29,8 @@ class MiniPlayerBar extends StatelessWidget {
         final song = snapSong.data;
         if (song == null) return const SizedBox.shrink();
 
+        final int parsedSongId = int.tryParse(song.id.toString()) ?? 0;
+
         return Container(
           decoration: const BoxDecoration(
             color: _bgGlass,
@@ -45,7 +48,7 @@ class MiniPlayerBar extends StatelessWidget {
                   children: [
                     Row(
                       children: [
-                        // ── Album icon (Dynamic Glow) ──
+                        // ── Album icon (Artwork or Dynamic Glow Fallback) ──
                         Container(
                           width: 42,
                           height: 42,
@@ -54,10 +57,22 @@ class MiniPlayerBar extends StatelessWidget {
                             color: accent.withOpacity(0.12),
                             border: Border.all(color: accent.withOpacity(0.25)),
                           ),
-                          child: Icon(
-                            Icons.music_note_rounded,
-                            color: accent, // DYNAMIC ACCENT
-                            size: 18,
+                          child: ClipOval(
+                            child: QueryArtworkWidget(
+                              id: parsedSongId,
+                              type: ArtworkType.AUDIO,
+                              artworkHeight: 42,
+                              artworkWidth: 42,
+                              artworkFit: BoxFit.cover,
+                              keepOldArtwork: true,
+                              nullArtworkWidget: Center(
+                                child: Icon(
+                                  Icons.music_note_rounded,
+                                  color: accent, // DYNAMIC ACCENT FALLBACK
+                                  size: 18,
+                                ),
+                              ),
+                            ),
                           ),
                         ),
 
@@ -87,7 +102,16 @@ class MiniPlayerBar extends StatelessWidget {
                         ),
 
                         // ── Controls ──
-                        StreamBuilder(
+                        _ControlButton(
+                          icon: Icons.skip_previous_rounded,
+                          isAccent: false,
+                          accentColor: accent,
+                          onTap: () => app.player.previous(),
+                        ),
+
+                        const SizedBox(width: 4),
+
+                        StreamBuilder<PlayerState>(
                           stream: app.player.playerStateStream,
                           builder: (context, snapState) {
                             final playing = snapState.data?.playing ?? app.player.playing;
@@ -105,7 +129,7 @@ class MiniPlayerBar extends StatelessWidget {
                         _ControlButton(
                           icon: Icons.skip_next_rounded,
                           isAccent: false,
-                          accentColor: accent, // PASS DYNAMIC ACCENT
+                          accentColor: accent,
                           onTap: () => app.player.next(),
                         ),
                       ],

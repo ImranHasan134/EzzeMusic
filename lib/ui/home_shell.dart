@@ -15,7 +15,6 @@ class HomeShell extends StatefulWidget {
 }
 
 class _HomeShellState extends State<HomeShell> {
-  // ── Define your Home Tab Index ──
   // 0 = Player, 1 = Songs, 2 = Playlists, 3 = Settings
   final int _homeIndex = 1;
   late int _index;

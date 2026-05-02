@@ -17,7 +17,7 @@ Future<void> main() async {
     );
   }
 
-  // Initialize AppState and wait for settings (Accent color, playlists, etc.) to load
+
   final appState = AppState();
   await appState.init();
 

@@ -20,7 +20,6 @@ class NowPlayingScreen extends StatefulWidget {
 class _NowPlayingScreenState extends State<NowPlayingScreen>
     with TickerProviderStateMixin {
 
-  // ── Animations & Subscriptions ──
   late AnimationController _pulseController;
   late Animation<double> _pulseAnimation;
   late AnimationController _rotationController;

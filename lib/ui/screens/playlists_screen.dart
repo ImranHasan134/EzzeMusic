@@ -7,7 +7,7 @@ import '../../ui/screens/playlist_detail_screen.dart';
 class PlaylistsScreen extends StatelessWidget {
   const PlaylistsScreen({super.key});
 
-  // ── Design tokens (Static) ──────────────────────────────────────
+ 
   static const _bgDeep        = Color(0xFF09090B);
   static const _bgGlass       = Color(0xFF18181B);
   static const _textPrimary   = Color(0xFFFAFAFA);

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../home_shell.dart'; // Ensure this path points to your HomeShell file
+import '../home_shell.dart';
 
 enum GifSize { small, medium, large, custom }
 
